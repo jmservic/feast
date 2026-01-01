@@ -45,6 +45,7 @@ func main() {
 	})
 
 	handler.HandleFunc("/register", cfg.register)
+	//handler.HandlerFunc("/login",)
 
 	server := http.Server{
 		Addr:    ":" + port,
