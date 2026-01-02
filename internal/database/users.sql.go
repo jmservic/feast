@@ -8,7 +8,7 @@ package database
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -77,7 +77,7 @@ type UpdateUserParams struct {
 	Name           string
 	Email          string
 	HashedPassword string
-	ID             pgtype.UUID
+	ID             uuid.UUID
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {

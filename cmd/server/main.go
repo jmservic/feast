@@ -44,7 +44,7 @@ func main() {
 		w.Write([]byte("Hello World! because of course..."))
 	})
 
-	handler.HandleFunc("/register", cfg.handlerCreateUser)
+	handler.HandleFunc("POST /register", cfg.handlerCreateUser)
 	//handler.HandlerFunc("/login",)
 
 	server := http.Server{
