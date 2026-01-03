@@ -1,57 +1,25 @@
 package main
 
 import (
-	"encoding/json"
-	"github.com/jmservic/feast/internal/auth"
-	"github.com/jmservic/feast/internal/constants"
+	"errors"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmservic/feast/internal/database"
-	"github.com/jmservic/feast/internal/dto"
 	"net/http"
 )
 
 type apiConfig struct {
-	db *database.Queries
+	db       *database.Queries
+	platform string
 }
 
-func (cfg apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
-	params := struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}{}
-
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&params); err != nil {
-		respondWithError(w, http.StatusInternalServerError, constants.JsonDecodeErrStr, err)
-		return
+func mapDbErrorToHttpStatusCode(err error) int {
+	pgErr := &pgconn.PgError{}
+	code := http.StatusInternalServerError
+	if errors.As(err, &pgErr) {
+		if pgErr.Code == "23505" || pgErr.Code == "23503" {
+			code = http.StatusBadRequest
+		}
 	}
 
-	if params.Password == "" {
-		respondWithError(w, http.StatusBadRequest, constants.EmptyPasswordErrStr, nil)
-		return
-	}
-	hash, err := auth.HashPassword(params.Password)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, constants.PasswordHashErrStr, err)
-		return
-	}
-
-	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
-		Name:           params.Name,
-		Email:          params.Email,
-		HashedPassword: hash,
-	})
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, constants.UserCreationErrStr, err)
-		return
-	}
-
-	rtnVals := dto.UserResources{
-		Id:        user.ID,
-		Name:      user.Name,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-	}
-	respondWithJSON(w, http.StatusCreated, rtnVals)
+	return code
 }

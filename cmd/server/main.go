@@ -21,6 +21,11 @@ func main() {
 		log.Fatal("DB_URL must be set")
 	}
 
+	platform := os.Getenv("PLATFORM")
+	if platform == "" {
+		platform = "production"
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -34,7 +39,8 @@ func main() {
 	dbQueries := database.New(conn)
 
 	cfg := apiConfig{
-		db: dbQueries,
+		db:       dbQueries,
+		platform: platform,
 	}
 
 	handler := http.NewServeMux()
@@ -46,6 +52,7 @@ func main() {
 
 	handler.HandleFunc("POST /register", cfg.handlerCreateUser)
 	//handler.HandlerFunc("/login",)
+	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)
 
 	server := http.Server{
 		Addr:    ":" + port,
