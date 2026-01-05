@@ -1,8 +1,22 @@
 package constants
 
+import (
+	"time"
+)
+
 const (
-	EmptyPasswordErrStr string = "password field cannot be empty"
-	JsonDecodeErrStr    string = "error occurred when decoding the json string"
-	PasswordHashErrStr  string = "error hashing the password"
-	UserCreationErrStr  string = "error creating a new user"
+	EmptyPasswordErrStr        string = "password field cannot be empty"
+	HashCheckErrStr            string = "error comparing hashes"
+	InvalidCredentialsErrStr   string = "invalid credentials"
+	JsonDecodeErrStr           string = "error occurred when decoding the json string"
+	JwtCreationErrStr          string = "error creating a JWT token"
+	PasswordHashErrStr         string = "error hashing the password"
+	RefreshTokenCreationErrStr string = "error creating a refresh token"
+	RefreshTokenStorageErrStr  string = "error storing a refresh token"
+	UserCreationErrStr         string = "error creating a new user"
+)
+
+const (
+	AccessTokenLength  time.Duration = time.Minute * 15
+	RefreshTokenLength time.Duration = time.Hour * 24 * 60
 )

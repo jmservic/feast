@@ -7,6 +7,7 @@ import (
 	"github.com/jmservic/feast/internal/database"
 	"github.com/jmservic/feast/internal/dto"
 	"net/http"
+	"time"
 )
 
 func (cfg apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
@@ -53,5 +54,61 @@ func (cfg apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
+	params := struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.JsonDecodeErrStr, err)
+		return
+	}
+
+	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, constants.InvalidCredentialsErrStr, err)
+		return
+	}
+
+	hash, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.PasswordHashErrStr, err)
+		return
+	}
+
+	match, err := auth.CheckPasswordHash(user.HashedPassword, hash)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.HashCheckErrStr, err)
+		return
+	}
+	if !match {
+		respondWithError(w, http.StatusUnauthorized, constants.InvalidCredentialsErrStr, err)
+		return
+	}
+
+	//Time to create the access and refresh tokens!!
+	token, err := auth.MakeJWT(user.ID, cfg.secret, constants.AccessTokenLength)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.JwtCreationErrStr, err)
+		return
+	}
+
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.RefreshTokenCreationErrStr, err)
+		return
+	}
+
+	err = cfg.db.StoreRefreshToken(r.Context(), database.StoreRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(constants.RefreshTokenLength),
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.RefreshTokenStorageErrStr, err)
+		return
+	}
 
 }

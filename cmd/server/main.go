@@ -26,6 +26,11 @@ func main() {
 		platform = "production"
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET must be set")
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -41,6 +46,7 @@ func main() {
 	cfg := apiConfig{
 		db:       dbQueries,
 		platform: platform,
+		secret:   jwtSecret,
 	}
 
 	handler := http.NewServeMux()
@@ -51,7 +57,7 @@ func main() {
 	})
 
 	handler.HandleFunc("POST /register", cfg.handlerCreateUser)
-	//handler.HandlerFunc("/login",)
+	handler.HandleFunc("POST /login", cfg.handlerLogin)
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)
 
 	server := http.Server{

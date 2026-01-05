@@ -12,3 +12,9 @@ type UserResources struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
 }
+
+type UserAuthentication struct {
+	UserResources
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+}

@@ -10,6 +10,7 @@ import (
 type apiConfig struct {
 	db       *database.Queries
 	platform string
+	secret   string
 }
 
 func mapDbErrorToHttpStatusCode(err error) int {
