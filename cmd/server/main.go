@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jmservic/feast/internal/database"
 	"github.com/joho/godotenv"
@@ -59,6 +60,11 @@ func main() {
 	handler.HandleFunc("POST /register", cfg.handlerCreateUser)
 	handler.HandleFunc("POST /login", cfg.handlerLogin)
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)
+	//Need a refresh handler and revoke refresh token handler
+	handler.Handle("GET /authorized-endpoint", cfg.middlewareAuthentication(func(w http.ResponseWriter, res *http.Request, userId uuid.UUID) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Hello World! because of course..."))
+	}))
 
 	server := http.Server{
 		Addr:    ":" + port,

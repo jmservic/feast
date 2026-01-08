@@ -10,6 +10,8 @@ const (
 	InvalidCredentialsErrStr   string = "invalid credentials"
 	JsonDecodeErrStr           string = "error occurred when decoding the json string"
 	JwtCreationErrStr          string = "error creating a JWT token"
+	JwtRetrievalErrStr         string = "error getting JWT"
+	JwtValidationErrStr        string = "error validating JWT"
 	PasswordHashErrStr         string = "error hashing the password"
 	RefreshTokenCreationErrStr string = "error creating a refresh token"
 	RefreshTokenStorageErrStr  string = "error storing a refresh token"

@@ -71,13 +71,7 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := auth.HashPassword(params.Password)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, constants.PasswordHashErrStr, err)
-		return
-	}
-
-	match, err := auth.CheckPasswordHash(user.HashedPassword, hash)
+	match, err := auth.CheckPasswordHash(params.Password, user.HashedPassword)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, constants.HashCheckErrStr, err)
 		return
@@ -111,8 +105,6 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Also send the token and refresh token as cookies
-
 	respondWithJSON(w, http.StatusOK, dto.UserAuthentication{
 		UserResources: dto.UserResources{
 			Id:        user.ID,
@@ -124,5 +116,6 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		Token:        token,
 		RefreshToken: refreshToken,
 	})
-
 }
+
+// What should we do for web browsers... cookies for access token / refresh token?
