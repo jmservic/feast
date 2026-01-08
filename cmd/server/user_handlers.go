@@ -111,4 +111,18 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Also send the token and refresh token as cookies
+
+	respondWithJSON(w, http.StatusOK, dto.UserAuthentication{
+		UserResources: dto.UserResources{
+			Id:        user.ID,
+			Name:      user.Name,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
+		Token:        token,
+		RefreshToken: refreshToken,
+	})
+
 }
