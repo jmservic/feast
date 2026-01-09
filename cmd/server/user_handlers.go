@@ -113,8 +113,10 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
-		Token:        token,
-		RefreshToken: refreshToken,
+		TokenResponse: dto.TokenResponse{
+			Token:        token,
+			RefreshToken: refreshToken,
+		},
 	})
 }
 

@@ -57,10 +57,11 @@ func main() {
 		w.Write([]byte("Hello World! because of course..."))
 	})
 
-	handler.HandleFunc("POST /register", cfg.handlerCreateUser)
-	handler.HandleFunc("POST /login", cfg.handlerLogin)
+	handler.HandleFunc("POST /api/users", cfg.handlerCreateUser)
+	handler.HandleFunc("POST /api/login", cfg.handlerLogin)
+	handler.HandleFunc("POST /api/refresh", cfg.handlerRefresh)
+	handler.HandleFunc("POST /api/revoke", cfg.handlerRevoke)
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)
-	//Need a refresh handler and revoke refresh token handler
 	handler.Handle("GET /authorized-endpoint", cfg.middlewareAuthentication(func(w http.ResponseWriter, res *http.Request, userId uuid.UUID) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Hello World! because of course..."))

@@ -15,6 +15,5 @@ type UserResources struct {
 
 type UserAuthentication struct {
 	UserResources
-	Token        string `json:"token"`
-	RefreshToken string `json:"refresh_token"`
+	TokenResponse
 }
