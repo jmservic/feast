@@ -17,7 +17,7 @@ func (cfg apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//When checking the expiration, check for the error sql.ErrNoRows, if we get that return 401 else it is a server error.
+	//When checking the expiration, check for the error pgx.ErrNoRows, if we get that return 401 else it is a server error.
 	isExpired, err := cfg.db.RefreshTokenExpired(r.Context(), refreshToken)
 	if err != nil {
 		if err == pgx.ErrNoRows {
