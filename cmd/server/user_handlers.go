@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/google/uuid"
 	"github.com/jmservic/feast/internal/auth"
 	"github.com/jmservic/feast/internal/constants"
 	"github.com/jmservic/feast/internal/database"
@@ -51,6 +52,9 @@ func (cfg apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 		Email:     user.Email,
 	}
 	respondWithJSON(w, http.StatusCreated, rtnVals)
+}
+
+func (cfg apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
 }
 
 func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {

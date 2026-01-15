@@ -56,11 +56,30 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Hello World! because of course..."))
 	})
-
-	handler.HandleFunc("POST /api/users", cfg.handlerCreateUser)
+	// Authentication and Authorization
 	handler.HandleFunc("POST /api/login", cfg.handlerLogin)
 	handler.HandleFunc("POST /api/refresh", cfg.handlerRefresh)
 	handler.HandleFunc("POST /api/revoke", cfg.handlerRevoke)
+
+	// Users
+	handler.HandleFunc("POST /api/users", cfg.handlerCreateUser)
+	handler.Handle("PUT /api/users/{user_id}", cfg.middlewareAuthentication(cfg.handlerUpdateUser))
+
+	// Households
+	handler.Handle("POST /api/households", cfg.middlewareAuthentication(cfg.handlerCreateHousehold))
+	handler.Handle("GET /api/households/{householdId}", cfg.middlewareAuthentication(cfg.handlerGetHousehold))
+	handler.Handle("PUT /api/households/{householdId}", cfg.middlewareAuthentication(cfg.handlerUpdateHousehold))
+	handler.Handle("DELETE /api/households/{householdId}", cfg.middlewareAuthentication(cfg.handlerDeleteHousehold))
+
+	// Household Members
+	//Might not need this one
+	handler.Handle("GET /api/households/{household_id}/members", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMembers))
+	handler.Handle("POST /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerCreateHouseholdMember))
+	handler.Handle("GET /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMember))
+	handler.Handle("PUT /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerUpdateHouseholdMember))
+	handler.Handle("DELETE /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerDeleteHouseholdMember))
+
+	// Admin
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)
 	handler.Handle("GET /authorized-endpoint", cfg.middlewareAuthentication(func(w http.ResponseWriter, res *http.Request, userId uuid.UUID) {
 		w.WriteHeader(http.StatusOK)
