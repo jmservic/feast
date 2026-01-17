@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+func TestFailing(t *testing.T) {
+	t.Error("Failing just because lol")
+}
+
 func TestHashPasswordReturnsHashString(t *testing.T) {
 	password := "password"
 	hash, err := HashPassword(password)
