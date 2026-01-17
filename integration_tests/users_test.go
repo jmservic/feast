@@ -1,5 +1,9 @@
 package integration
 
 import (
-// "testing"
+	"testing"
 )
+
+func TestFailing(t *testing.T) {
+	t.Error("Failing just because lol")
+}

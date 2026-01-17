@@ -73,6 +73,9 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 	if issuer != string(TokenTypeAccess) {
 		return uuid.Nil, errors.New("invalid issuer")
 	}
+	if err != nil {
+		return uuid.Nil, errors.New("error getting jwt issuer")
+	}
 
 	id, err := uuid.Parse(userIDString)
 	if err != nil {
