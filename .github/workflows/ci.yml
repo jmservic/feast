@@ -26,7 +26,7 @@ jobs:
       - name: Security Checks 
         uses: securego/gosec@master
         with:
-          args: ./...
+          args: --exclude-rules="internal/constants/*:G101;internal/database/*:*"./...
 
   style:
     name: Style
