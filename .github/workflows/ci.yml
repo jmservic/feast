@@ -50,12 +50,12 @@ jobs:
       - name: Linting Check
         run: staticcheck ./...
 
-    integration_tests:
-      if: {{ github.event_name == 'pull_request' || github.ref_name == 'main' }}
-      name: Integration Tests
-      runs-on: ubuntu-latest
+  integration_tests:
+    if: {{ github.event_name == 'pull_request' || github.ref_name == 'main' }}
+    name: Integration Tests
+    runs-on: ubuntu-latest
 
-      steps:
+    steps:
       - name: Check out code
         uses: actions/checkout@v6
 
