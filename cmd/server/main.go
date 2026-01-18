@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"github.com/google/uuid"
+	//"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jmservic/feast/internal/database"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 func main() {
@@ -52,10 +53,10 @@ func main() {
 
 	handler := http.NewServeMux()
 
-	handler.HandleFunc("/", func(w http.ResponseWriter, res *http.Request) {
+	/*handler.HandleFunc("/", func(w http.ResponseWriter, res *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Hello World! because of course..."))
-	})
+	})*/
 	// Authentication and Authorization
 	handler.HandleFunc("POST /api/login", cfg.handlerLogin)
 	handler.HandleFunc("POST /api/refresh", cfg.handlerRefresh)
@@ -81,14 +82,15 @@ func main() {
 
 	// Admin
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)
-	handler.Handle("GET /authorized-endpoint", cfg.middlewareAuthentication(func(w http.ResponseWriter, res *http.Request, userId uuid.UUID) {
+	/*handler.Handle("GET /authorized-endpoint", cfg.middlewareAuthentication(func(w http.ResponseWriter, res *http.Request, userId uuid.UUID) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Hello World! because of course..."))
-	}))
+	}))*/
 
 	server := http.Server{
 		Addr:    ":" + port,
 		Handler: handler,
+		ReadHeaderTimeout: time.Second * 16,
 	}
 
 	log.Printf("Serving on port: %v\n", port)
