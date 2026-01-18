@@ -68,7 +68,7 @@ jobs:
         run: sudo snap install postgresql
 
       - name: Update postgres account
-        run: psql -U postgres -c "ALTER USER postgress PASSWORD 'postgres';"
+        run: psql -U postgres -c "ALTER USER postgres PASSWORD 'postgres';"
       
       - name: Create the feast database
         run: psql -U postgres -c "CREATE DATABASE feast;"
