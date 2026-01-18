@@ -73,6 +73,9 @@ jobs:
       - name: Create the feast database
         run: psql -U postgres -c "CREATE DATABASE feast;"
 
+      - name: Check that the database was created
+        run: psql -U postgres -l | grep "feast"
+
       - name: Run Integration Tests
         run: go test -cover ./integration_tests/...
 
