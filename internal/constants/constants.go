@@ -7,12 +7,12 @@ import (
 const (
 	EmptyPasswordErrStr         string = "password field cannot be empty"
 	HashCheckErrStr             string = "error comparing hashes"
-	InvalidCredentialsErrStr    string = "invalid credentials"
+	InvalidCredentialsErrStr    string = "invalid credentials" // #nosec G101
 	JsonDecodeErrStr            string = "error occurred when decoding the json string"
 	JwtCreationErrStr           string = "error creating a JWT token"
 	JwtRetrievalErrStr          string = "error getting JWT"
 	JwtValidationErrStr         string = "error validating JWT"
-	PasswordHashErrStr          string = "error hashing the password"
+	PasswordHashErrStr          string = "error hashing the password" // #nosec G101
 	RefreshTokenCheckingErrStr  string = "error checking refresh token"
 	RefreshTokenCreationErrStr  string = "error creating a refresh token"
 	RefreshTokenInvalidErrStr   string = "invalid refresh token"

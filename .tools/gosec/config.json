@@ -1,0 +1,8 @@
+{
+	"exclude-rules": [
+		{
+			"path": "/home/jmarcus2004/workspace/github.com/jmservic/feast/internal/constants",
+			"rules": ["*"]
+		}
+	]
+}

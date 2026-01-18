@@ -26,7 +26,7 @@ jobs:
       - name: Security Checks 
         uses: securego/gosec@master
         with:
-          args: ./...
+          args: -exclude-generated ./...
 
   style:
     name: Style
@@ -63,6 +63,18 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
+
+      - name: Install postgres
+        run: sudo snap install postgresql
+
+      - name: Update postgres account
+        run: psql -U postgres -c "ALTER USER postgres PASSWORD 'postgres';"
+      
+      - name: Create the feast database
+        run: psql -U postgres -c "CREATE DATABASE feast;"
+
+      - name: Check that the database was created
+        run: psql -U postgres -l | grep "feast"
 
       - name: Run Integration Tests
         run: go test -cover ./integration_tests/...

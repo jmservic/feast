@@ -112,6 +112,9 @@ func GetAPIKey(headers http.Header) (string, error) {
 
 func MakeRefreshToken() (string, error) {
 	refreshBytes := make([]byte, 32)
-	rand.Read(refreshBytes)
+	_, err := rand.Read(refreshBytes)
+	if err != nil {
+		return "", err
+	}
 	return hex.EncodeToString(refreshBytes), nil
 }
