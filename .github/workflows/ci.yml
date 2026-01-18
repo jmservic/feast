@@ -65,7 +65,7 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: Install postgres
-        run: snap install postgresql
+        run: sudo snap install postgresql
 
       - name: Update postgres account
         run: psql -U postgres -c "ALTER USER postgress PASSWORD 'postgres';"
