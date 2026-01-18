@@ -88,8 +88,8 @@ func main() {
 	}))*/
 
 	server := http.Server{
-		Addr:    ":" + port,
-		Handler: handler,
+		Addr:              ":" + port,
+		Handler:           handler,
 		ReadHeaderTimeout: time.Second * 16,
 	}
 
