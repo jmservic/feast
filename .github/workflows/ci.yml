@@ -64,6 +64,15 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Install postgres
+        run: snap install postgresql
+
+      - name: Update postgres account
+        run: psql -U postgres -c "ALTER USER postgress PASSWORD 'postgres';"
+      
+      - name: Create the feast database
+        run: psql -U postgres -c "CREATE DATABASE feast;"
+
       - name: Run Integration Tests
         run: go test -cover ./integration_tests/...
 
