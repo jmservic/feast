@@ -20,7 +20,7 @@ func TestCreateNewUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
 
