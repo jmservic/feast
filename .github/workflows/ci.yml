@@ -94,7 +94,7 @@ jobs:
         run: $(cd sql/schema && goose up)
 
       - name: Run Feast Server
-        run: go run ./cmd/server 
+        run: go run ./cmd/server &
 
       - name: Wait for server to start
         run: sleep 16
