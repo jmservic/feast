@@ -54,6 +54,7 @@ jobs:
     if: ${{ github.event_name == 'pull_request' || github.ref_name == 'main' }}
     name: Integration Tests
     runs-on: ubuntu-latest
+    environment: $ {{ vars.test }}
 
     steps:
       - name: Check out code
@@ -75,6 +76,12 @@ jobs:
 
       - name: Check that the database was created
         run: psql -U postgres -l | grep "feast"
+
+      - name: Install goose
+      - uses: mscno/setup-goose@v1
+
+      - name: Run database migrations
+        run: goose up
 
       - name: Run Integration Tests
         run: go test -cover ./integration_tests/...

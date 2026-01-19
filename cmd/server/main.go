@@ -13,19 +13,22 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	platform := os.Getenv("PLATFORM")
+
+	if platform != "test" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatalf("Error loading .env file: %s", err)
+		}
+		platform = os.Getenv("PLATFORM")
+		if platform == "" {
+			platform = "production"
+		}
 	}
 
 	dbUrl := os.Getenv("DB_URL")
 	if dbUrl == "" {
 		log.Fatal("DB_URL must be set")
-	}
-
-	platform := os.Getenv("PLATFORM")
-	if platform == "" {
-		platform = "production"
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
