@@ -93,6 +93,9 @@ jobs:
       - name: Run database migrations
         run: $(cd sql/schema && goose up)
 
+      - name: Run Feast Server
+        run: go run ./cmd/server &
+
       - name: Run Integration Tests
         run: go test -cover ./integration_tests/...
 
