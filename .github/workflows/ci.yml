@@ -78,7 +78,7 @@ jobs:
         run: psql -U postgres -l | grep "feast"
 
       - name: Install goose
-      - uses: mscno/setup-goose@v1
+        uses: mscno/setup-goose@v1
 
       - name: Run database migrations
         run: goose up
