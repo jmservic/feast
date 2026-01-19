@@ -54,6 +54,7 @@ jobs:
     if: ${{ github.event_name == 'pull_request' || github.ref_name == 'main' }}
     name: Integration Tests
     runs-on: ubuntu-latest
+    environment: Test
     env:
       GOOSE_DRIVER: ${{ vars.GOOSE_DRIVER }}
       GOOSE_DBSTRING: ${{ vars.GOOSE_DBSTRING }}
