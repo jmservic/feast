@@ -91,7 +91,7 @@ jobs:
         uses: mscno/setup-goose@v1
 
       - name: Run database migrations
-        run: goose up
+        run: $(cd sql/schema && goose up)
 
       - name: Run Integration Tests
         run: go test -cover ./integration_tests/...
