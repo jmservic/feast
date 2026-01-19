@@ -54,7 +54,13 @@ jobs:
     if: ${{ github.event_name == 'pull_request' || github.ref_name == 'main' }}
     name: Integration Tests
     runs-on: ubuntu-latest
-    environment: $ {{ vars.test }}
+    env:
+      GOOSE_DRIVER: ${{ vars.GOOSE_DRIVER }}
+      GOOSE_DBSTRING: ${{ vars.GOOSE_DBSTRING }}
+      DB_URL: ${{ vars.DB_URL }}
+      JWT_SECRET: ${{ vars.JWT_SECRET }}
+      PLATFORM: ${{ vars.PLATFORM }}
+      PORT: ${{ vars.PORT }}
 
     steps:
       - name: Check out code
