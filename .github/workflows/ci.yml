@@ -96,6 +96,9 @@ jobs:
       - name: Run Feast Server
         run: go run ./cmd/server &
 
+      - name: Wait for server to start
+        run: sleep 16
+
       - name: Run Integration Tests
         run: go test -cover ./integration_tests/...
 
