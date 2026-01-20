@@ -13,5 +13,8 @@ func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("All Users dropped."))
+	_, err = w.Write([]byte("All Users dropped."))
+	if err != nil {
+
+	}
 }

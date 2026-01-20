@@ -26,7 +26,7 @@ jobs:
       - name: Security Checks 
         uses: securego/gosec@master
         with:
-          args: ./...
+          args: -exclude-generated ./...
 
   style:
     name: Style
@@ -54,8 +54,19 @@ jobs:
     if: ${{ github.event_name == 'pull_request' || github.ref_name == 'main' }}
     name: Integration Tests
     runs-on: ubuntu-latest
+    environment: Test
+    env:
+      GOOSE_DRIVER: ${{ vars.GOOSE_DRIVER }}
+      GOOSE_DBSTRING: ${{ vars.GOOSE_DBSTRING }}
+      DB_URL: ${{ vars.DB_URL }}
+      JWT_SECRET: ${{ vars.JWT_SECRET }}
+      PLATFORM: ${{ vars.PLATFORM }}
+      PORT: ${{ vars.PORT }}
 
     steps:
+
+      - run: echo "$GOOSE_DRIVER | $GOOSE_DBSTRING" 
+
       - name: Check out code
         uses: actions/checkout@v6
 
@@ -63,6 +74,36 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
+
+      - name: Install postgres
+        run: sudo snap install postgresql
+
+      - name: Update postgres account
+        run: psql -U postgres -c "ALTER USER postgres PASSWORD 'postgres';"
+      
+      - name: Create the feast database
+        run: psql -U postgres -c "CREATE DATABASE feast;"
+
+      - name: Check that the database was created
+        run: psql -U postgres -l | grep "feast"
+
+      - name: Install goose
+        uses: mscno/setup-goose@v1
+
+      - name: Run database migrations
+        run: $(cd sql/schema && goose up)
+
+      - name: Run Feast Server
+        run: go run ./cmd/server &
+
+      - name: Wait for server to start
+        run: |
+          COUNT=0
+          until sudo ss -tln | grep -q ":$PORT" || test 30 -lt $COUNT;
+          do
+            COUNT=$(($COUNT + 1));
+            sleep 1;
+          done
 
       - name: Run Integration Tests
         run: go test -cover ./integration_tests/...
