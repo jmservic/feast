@@ -8,7 +8,7 @@ import (
 )
 
 func TestCreateNewUser(t *testing.T) {
-	//loadDotEnv()
+	loadDotEnv()
 	feast_url := "http://localhost:" + os.Getenv("PORT")
 	body := bytes.NewReader([]byte(`{
 		"name": "jonathan",

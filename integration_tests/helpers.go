@@ -10,7 +10,7 @@ func loadDotEnv() {
 	platform := os.Getenv("PLATFORM")
 
 	if platform != "test" {
-		err := godotenv.Load()
+		err := godotenv.Load("../.env")
 		if err != nil {
 			log.Fatalf("Error loading .env file: %s", err)
 		}
