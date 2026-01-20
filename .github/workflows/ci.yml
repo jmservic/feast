@@ -97,7 +97,7 @@ jobs:
         run: go run ./cmd/server &
 
       - name: Wait for server to start
-        run: until sudo ss -tln | grep ':8080'; do sleep 1; done
+        run: until sudo ss -tln | grep ':$PORT'; do sleep 1; done
 
       - name: Run Integration Tests
         run: go test -cover ./integration_tests/...
