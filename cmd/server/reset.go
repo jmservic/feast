@@ -3,7 +3,7 @@ package main
 import "net/http"
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
-	if cfg.platform != "dev" {
+	if cfg.platform != "dev" && cfg.platform != "test" {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}

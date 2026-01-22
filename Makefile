@@ -1,0 +1,1 @@
+I would like to add in a few things. Goose database up and down. Run the server in the background. Possibly sqlc commands. I may add in some docker commands as well. Also build. Run Integrations test (Also start the server)
