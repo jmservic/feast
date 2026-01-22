@@ -26,6 +26,11 @@ func resetDatabase(feast_url string) {
 	}
 	if err != nil {
 		log.Printf("Error with post request: %v\n", err)
+		return
 	}
-	res.Body.Close()
+	defer res.Body.Close()
+}
+
+func getFeastURL() string {
+	return "http://localhost:" + os.Getenv("PORT")
 }

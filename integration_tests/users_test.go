@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"testing"
-	"time"
 )
 
 // TO-DO: Add failing test cases like a bad name, email, or password
@@ -21,21 +20,13 @@ func TestCreateNewUser(t *testing.T) {
 	feast_url := "http://localhost:" + os.Getenv("PORT")
 	t.Cleanup(func() { resetDatabase(feast_url) })
 
-	payload := struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}{
+	payload := UserCreatePayload{
 		Name:     name,
 		Email:    email,
 		Password: password,
 	}
 
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		t.Fatalf("Error marshaling the payload: %s", err)
-	}
-	body := bytes.NewReader(payloadBytes)
+	body := CreateJSONReader(payload, t)
 
 	res, err := http.Post(feast_url+"/api/users", "application/json", body)
 	if err != nil {
@@ -47,18 +38,8 @@ func TestCreateNewUser(t *testing.T) {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
 
-	decoder := json.NewDecoder(res.Body)
-	sut := struct {
-		Id        uuid.UUID `json:"id"`
-		Name      string    `json:"name"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-	}{}
-
-	if err := decoder.Decode(&sut); err != nil {
-		t.Fatalf("Unexpected error decoding the json response: %v", err)
-	}
+	sut := UserCreateResponse{}
+	DecodeJSONResponse(&sut, res.Body, t)
 
 	if sut.Name != name {
 		t.Fatalf("Expected %s, but got %s for the name", name, sut.Name)
@@ -78,24 +59,16 @@ func TestCreateDuplicateUserFails(t *testing.T) {
 	email := "jon@example.com"
 	password := "very-secret!"
 
-	feast_url := "http://localhost:" + os.Getenv("PORT")
+	feast_url := getFeastURL()
 	t.Cleanup(func() { resetDatabase(feast_url) })
 
-	payload := struct {
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}{
+	payload := UserCreatePayload{
 		Name:     name,
 		Email:    email,
 		Password: password,
 	}
 
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		t.Fatalf("Error marshaling the payload: %s", err)
-	}
-	body := bytes.NewReader(payloadBytes)
+	body := CreateJSONReader(payload, t)
 
 	res, err := http.Post(feast_url+"/api/users", "application/json", body)
 	if err != nil {
@@ -106,18 +79,8 @@ func TestCreateDuplicateUserFails(t *testing.T) {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
 
-	decoder := json.NewDecoder(res.Body)
-	sut := struct {
-		Id        uuid.UUID `json:"id"`
-		Name      string    `json:"name"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-	}{}
-
-	if err := decoder.Decode(&sut); err != nil {
-		t.Fatalf("Unexpected error decoding the json response: %v", err)
-	}
+	sut := UserCreateResponse{}
+	DecodeJSONResponse(&sut, res.Body, t)
 
 	if sut.Name != name {
 		t.Fatalf("Expected %s, but got %s for the name", name, sut.Name)
@@ -140,5 +103,62 @@ func TestCreateDuplicateUserFails(t *testing.T) {
 	if res.StatusCode != http.StatusBadRequest {
 		t.Fatalf("Expected status bad request, got: %d", res.StatusCode)
 	}
+}
 
+func TestUserLogin(t *testing.T) {
+	loadDotEnv()
+	feast_url := getFeastURL()
+	t.Cleanup(func() { resetDatabase(feast_url) })
+
+	name := "jonathan"
+	email := "jon@example.com"
+	password := "very-secret!"
+
+	//Create the user
+	payload := UserCreatePayload{
+		Name:     name,
+		Email:    email,
+		Password: password,
+	}
+
+	body := CreateJSONReader(payload, t)
+	res, err := http.Post(feast_url+"/api/users", "application/json", body)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
+	}
+
+	sut := UserCreateResponse{}
+	DecodeJSONResponse(&sut, res.Body, t)
+
+	if sut.Name != name {
+		t.Fatalf("Expected %s, but got %s for the name", name, sut.Name)
+	}
+	if sut.Email != email {
+		t.Fatalf("Expected %s, but got %s for the email", email, sut.Email)
+	}
+	if sut.Id == uuid.Nil {
+		t.Fatal("Got a Nil UUID for the user id")
+	}
+
+	res.Body.Close()
+
+	//Authenticate the user
+	testCases := []struct {
+		payload      UserLoginPayload
+		responseCode int
+		testName     string
+	}{
+		{
+			payload: UserLoginPayload{
+				Email:    email,
+				Password: password,
+			},
+			responseCode: http.StatusOK,
+			testName:     "Correct Credentials",
+		},
+	}
 }
