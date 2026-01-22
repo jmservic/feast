@@ -1,8 +1,6 @@
 package integration
 
 import (
-	"bytes"
-	"encoding/json"
 	"github.com/google/uuid"
 	"io"
 	"net/http"
