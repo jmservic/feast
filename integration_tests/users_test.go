@@ -159,4 +159,11 @@ func TestUserLogin(t *testing.T) {
 			testName:     "Correct Credentials",
 		},
 	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			t.Fatal("I'm just going to fail because")
+		})
+
+	}
 }
