@@ -8,6 +8,7 @@ import (
 	"github.com/jmservic/feast/internal/database"
 	"github.com/jmservic/feast/internal/dto"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -36,7 +37,7 @@ func (cfg apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
 		Name:           params.Name,
-		Email:          params.Email,
+		Email:          strings.ToLower(params.Email),
 		HashedPassword: hash,
 	})
 	if err != nil {
@@ -69,7 +70,7 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
+	user, err := cfg.db.GetUserByEmail(r.Context(), strings.ToLower(params.Email))
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, constants.InvalidCredentialsErrStr, err)
 		return
