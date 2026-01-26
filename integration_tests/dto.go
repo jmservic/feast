@@ -11,6 +11,10 @@ type UserCreatePayload struct {
 	Password string `json:"password"`
 }
 
+type UserUpdatePayload struct {
+	UserCreatePayload
+}
+
 type UserCreateResponse struct {
 	Id        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`

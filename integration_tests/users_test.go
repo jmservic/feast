@@ -296,4 +296,122 @@ func TestUpdateUser(t *testing.T) {
 
 	res.Body.Close()
 
+	testCases := []struct {
+		loginPayload UserLoginPayload
+		payload      UserUpdatePayload
+		responseCode int
+		testLogin    bool
+		testRefresh  bool
+		testName     string
+	}{
+		{
+
+			loginPayload: UserLoginPayload{
+				Email:    firstUserEmail,
+				Password: firstUserPassword,
+			},
+			payload: UserUpdatePayload{
+				UserCreatePayload{
+					Name:     "Jonathan Service",
+					Email:    firstUserEmail,
+					Password: firstUserPassword,
+				},
+			},
+			responseCode: http.StatusOK,
+			testLogin:    true,
+			testRefresh:  true,
+			testName:     "New User Name",
+		},
+		{
+			loginPayload: UserLoginPayload{
+				Email:    firstUserEmail,
+				Password: firstUserPassword,
+			},
+			payload: UserUpdatePayload{
+				UserCreatePayload{
+					Name:     "Jonathan Service",
+					Email:    secondUserEmail,
+					Password: "different-password",
+				},
+			},
+			responseCode: http.StatusBadRequest,
+			testLogin:    true,
+			testRefresh:  true,
+			testName:     "Updating to already in use email",
+		},
+		{
+			loginPayload: UserLoginPayload{
+				Email:    secondUserEmail,
+				Password: secondUserPassword,
+			},
+			payload: UserUpdatePayload{
+				UserCreatePayload{
+					Name:     secondUserName,
+					Email:    secondUserEmail,
+					Password: "bobina",
+				},
+			},
+			responseCode: http.StatusOK,
+			testLogin:    true,
+			testRefresh:  true,
+			testName:     "New Password",
+		},
+		{
+			loginPayload: UserLoginPayload{
+				Email:    secondUserEmail,
+				Password: "bobina",
+			},
+			payload: UserUpdatePayload{
+				UserCreatePayload{
+					Name:     secondUserName,
+					Email:    "castadon@example.com",
+					Password: "bobina",
+				},
+			},
+			responseCode: http.StatusOK,
+			testLogin:    true,
+			testRefresh:  true,
+			testName:     "New Email",
+		},
+		{
+			loginPayload: UserLoginPayload{
+				Email:    firstUserEmail,
+				Password: firstUserPassword,
+			},
+			payload: UserUpdatePayload{
+				UserCreatePayload{
+					Name:     "Jonathan Service",
+					Email:    "Inqindi@example.com",
+					Password: "axel&brie&cindy",
+				},
+			},
+			responseCode: http.StatusOK,
+			testLogin:    true,
+			testRefresh:  true,
+			testName:     "New Email and Password",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			//Login
+			loginBody := CreateJSONReader(testCase.loginPayload, t)
+			res, err := http.Post(feast_url+"/api/login", "application/json", loginBody)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if res.StatusCode != http.StatusOK {
+				t.Fatalf("Expected an OK response code, received: %d", res.StatusCode)
+			}
+
+			userLoginResponse := UserLoginResponse{}
+			DecodeJSONResponse(&userLoginResponse, res.Body, t)
+			res.Body.Close()
+
+			// Update User
+			updateBody := CreateJSONReader(testCase.payload, t)
+			res, err = http.Post(feast_url+"/api/login", "application/json", updateBody)
+		})
+	}
+
 }

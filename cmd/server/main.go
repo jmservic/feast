@@ -67,7 +67,7 @@ func main() {
 
 	// Users
 	handler.HandleFunc("POST /api/users", cfg.handlerCreateUser)
-	handler.Handle("PUT /api/users/{user_id}", cfg.middlewareAuthentication(cfg.handlerUpdateUser))
+	handler.Handle("PUT /api/users", cfg.middlewareAuthentication(cfg.handlerUpdateUser))
 
 	// Households
 	handler.Handle("POST /api/households", cfg.middlewareAuthentication(cfg.handlerCreateHousehold))
