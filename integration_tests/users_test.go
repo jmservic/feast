@@ -410,7 +410,14 @@ func TestUpdateUser(t *testing.T) {
 
 			// Update User
 			updateBody := CreateJSONReader(testCase.payload, t)
-			res, err = http.Post(feast_url+"/api/login", "application/json", updateBody)
+			req, err := http.NewRequest(http.MethodPut, feast_url+"/api/user", updateBody)
+			req.Header.Add("Authorization", "Bearer "+userLoginResponse.Token)
+
+			res, err = http.DefaultClient.Do(req)
+			if res.StatusCode != testCase.responseCode {
+				t.Fatalf("Expected an %d response code, received: %d", testCase.responseCode, res.StatusCode)
+			}
+
 		})
 	}
 
