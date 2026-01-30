@@ -418,6 +418,13 @@ func TestUpdateUser(t *testing.T) {
 				t.Fatalf("Expected an %d response code, received: %d", testCase.responseCode, res.StatusCode)
 			}
 
+			switch res.StatusCode {
+			case http.StatusOK:
+				//If the Email or Password has changed, the refresh should fail.
+			default:
+				//If the update failed, the refresh token should still work.
+			}
+
 		})
 	}
 
