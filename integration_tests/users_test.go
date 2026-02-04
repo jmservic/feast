@@ -420,7 +420,9 @@ func TestUpdateUser(t *testing.T) {
 
 			switch res.StatusCode {
 			case http.StatusOK:
-				//If the Email or Password has changed, the refresh should fail.
+			//If the Email or Password has changed, the refresh should fail.
+			case http.StatusBadGateway:
+				//This isn't going to stay
 			default:
 				//If the update failed, the refresh token should still work.
 			}
