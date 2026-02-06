@@ -9,6 +9,12 @@ import (
 	"testing"
 )
 
+type UserInfo struct {
+	name     string
+	email    string
+	password string
+}
+
 // TO-DO: Add failing test cases like a bad name, email, or password. Also different email casing
 func TestCreateNewUser(t *testing.T) {
 	loadDotEnv()
@@ -223,20 +229,24 @@ func TestUpdateUser(t *testing.T) {
 	feast_url := getFeastURL()
 	t.Cleanup(func() { resetDatabase(feast_url) })
 
-	firstUserName := "jonathan"
-	firstUserEmail := "jon@example.com"
-	firstUserPassword := "very-secret!"
+	firstUser := UserInfo{
+		name:     "jonathan",
+		email:    "jon@example.com",
+		password: "very-secret!",
+	}
 
-	secondUserName := "cassidy"
-	secondUserEmail := "cassidy@example.com"
-	secondUserPassword := "kalina"
+	secondUser := UserInfo{
+		name:     "cassidy",
+		email:    "cassidy@example.com",
+		password: "kalina",
+	}
 
 	// Create the two users
 	//first user
 	payload := UserCreatePayload{
-		Name:     firstUserName,
-		Email:    firstUserEmail,
-		Password: firstUserPassword,
+		Name:     firstUser.name,
+		Email:    firstUser.email,
+		Password: firstUser.password,
 	}
 
 	body := CreateJSONReader(payload, t)
@@ -252,11 +262,11 @@ func TestUpdateUser(t *testing.T) {
 	userCreateResponse := UserCreateResponse{}
 	DecodeJSONResponse(&userCreateResponse, res.Body, t)
 
-	if userCreateResponse.Name != firstUserName {
-		t.Fatalf("Expected %s, but got %s for the name", firstUserName, userCreateResponse.Name)
+	if userCreateResponse.Name != firstUser.name {
+		t.Fatalf("Expected %s, but got %s for the name", firstUser.name, userCreateResponse.Name)
 	}
-	if userCreateResponse.Email != firstUserEmail {
-		t.Fatalf("Expected %s, but got %s for the email", firstUserEmail, userCreateResponse.Email)
+	if userCreateResponse.Email != firstUser.email {
+		t.Fatalf("Expected %s, but got %s for the email", firstUser.email, userCreateResponse.Email)
 	}
 	if userCreateResponse.Id == uuid.Nil {
 		t.Fatal("Got a Nil UUID for the user id")
@@ -266,9 +276,9 @@ func TestUpdateUser(t *testing.T) {
 
 	//second user
 	payload = UserCreatePayload{
-		Name:     secondUserName,
-		Email:    secondUserEmail,
-		Password: secondUserPassword,
+		Name:     secondUser.name,
+		Email:    secondUser.email,
+		Password: secondUser.password,
 	}
 
 	body = CreateJSONReader(payload, t)
@@ -284,11 +294,11 @@ func TestUpdateUser(t *testing.T) {
 	userCreateResponse = UserCreateResponse{}
 	DecodeJSONResponse(&userCreateResponse, res.Body, t)
 
-	if userCreateResponse.Name != secondUserName {
-		t.Fatalf("Expected %s, but got %s for the name", secondUserName, userCreateResponse.Name)
+	if userCreateResponse.Name != secondUser.name {
+		t.Fatalf("Expected %s, but got %s for the name", secondUser.name, userCreateResponse.Name)
 	}
-	if userCreateResponse.Email != secondUserEmail {
-		t.Fatalf("Expected %s, but got %s for the email", secondUserEmail, userCreateResponse.Email)
+	if userCreateResponse.Email != secondUser.email {
+		t.Fatalf("Expected %s, but got %s for the email", secondUser.email, userCreateResponse.Email)
 	}
 	if userCreateResponse.Id == uuid.Nil {
 		t.Fatal("Got a Nil UUID for the user id")
@@ -297,7 +307,7 @@ func TestUpdateUser(t *testing.T) {
 	res.Body.Close()
 
 	testCases := []struct {
-		loginPayload UserLoginPayload
+		userInfo     *UserInfo
 		payload      UserUpdatePayload
 		responseCode int
 		testLogin    bool
@@ -305,16 +315,12 @@ func TestUpdateUser(t *testing.T) {
 		testName     string
 	}{
 		{
-
-			loginPayload: UserLoginPayload{
-				Email:    firstUserEmail,
-				Password: firstUserPassword,
-			},
+			userInfo: &firstUser,
 			payload: UserUpdatePayload{
 				UserCreatePayload{
 					Name:     "Jonathan Service",
-					Email:    firstUserEmail,
-					Password: firstUserPassword,
+					Email:    firstUser.email,
+					Password: firstUser.password,
 				},
 			},
 			responseCode: http.StatusOK,
@@ -323,14 +329,11 @@ func TestUpdateUser(t *testing.T) {
 			testName:     "New User Name",
 		},
 		{
-			loginPayload: UserLoginPayload{
-				Email:    firstUserEmail,
-				Password: firstUserPassword,
-			},
+			userInfo: &firstUser,
 			payload: UserUpdatePayload{
 				UserCreatePayload{
 					Name:     "Jonathan Service",
-					Email:    secondUserEmail,
+					Email:    secondUser.email,
 					Password: "different-password",
 				},
 			},
@@ -340,14 +343,11 @@ func TestUpdateUser(t *testing.T) {
 			testName:     "Updating to already in use email",
 		},
 		{
-			loginPayload: UserLoginPayload{
-				Email:    secondUserEmail,
-				Password: secondUserPassword,
-			},
+			userInfo: &secondUser,
 			payload: UserUpdatePayload{
 				UserCreatePayload{
-					Name:     secondUserName,
-					Email:    secondUserEmail,
+					Name:     secondUser.name,
+					Email:    secondUser.email,
 					Password: "bobina",
 				},
 			},
@@ -357,13 +357,10 @@ func TestUpdateUser(t *testing.T) {
 			testName:     "New Password",
 		},
 		{
-			loginPayload: UserLoginPayload{
-				Email:    secondUserEmail,
-				Password: "bobina",
-			},
+			userInfo: &secondUser,
 			payload: UserUpdatePayload{
 				UserCreatePayload{
-					Name:     secondUserName,
+					Name:     secondUser.name,
 					Email:    "castadon@example.com",
 					Password: "bobina",
 				},
@@ -374,10 +371,7 @@ func TestUpdateUser(t *testing.T) {
 			testName:     "New Email",
 		},
 		{
-			loginPayload: UserLoginPayload{
-				Email:    firstUserEmail,
-				Password: firstUserPassword,
-			},
+			userInfo: &firstUser,
 			payload: UserUpdatePayload{
 				UserCreatePayload{
 					Name:     "Jonathan Service",
@@ -395,7 +389,10 @@ func TestUpdateUser(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
 			//Login
-			loginBody := CreateJSONReader(testCase.loginPayload, t)
+			loginBody := CreateJSONReader(UserLoginPayload{
+				Email:    testCase.userInfo.email,
+				Password: testCase.userInfo.password,
+			}, t)
 			res, err := http.Post(feast_url+"/api/login", "application/json", loginBody)
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
@@ -421,8 +418,6 @@ func TestUpdateUser(t *testing.T) {
 			switch res.StatusCode {
 			case http.StatusOK:
 			//If the Email or Password has changed, the refresh should fail.
-			case http.StatusBadGateway:
-				//This isn't going to stay
 			default:
 				//If the update failed, the refresh token should still work.
 			}
