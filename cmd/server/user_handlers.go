@@ -85,6 +85,10 @@ func (cfg apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request, u
 
 	// Hash the password
 	hash, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.PasswordHashErrStr, err)
+		return
+	}
 
 	// update the user
 	updated_user, err := cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{

@@ -415,6 +415,9 @@ func TestUpdateUser(t *testing.T) {
 			req.Header.Add("Authorization", "Bearer "+userLoginResponse.Token)
 
 			res, err = http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
 
 			switch res.StatusCode {
 			case http.StatusOK:
@@ -450,6 +453,9 @@ func TestUpdateUser(t *testing.T) {
 			}
 			req.Header.Add("Authorization", "Bearer "+userLoginResponse.RefreshToken)
 			res, err = http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
 
 			if (res.StatusCode != http.StatusOK && !refreshShouldFail) || (res.StatusCode != http.StatusUnauthorized && refreshShouldFail) {
 				t.Fatalf("Refresh should fail = %v, yet received a status code of %d", refreshShouldFail, res.StatusCode)
