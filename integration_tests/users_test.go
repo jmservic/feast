@@ -388,6 +388,7 @@ func TestUpdateUser(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
+			refreshShouldFail := false
 			//Login
 			loginBody := CreateJSONReader(UserLoginPayload{
 				Email:    testCase.userInfo.email,
@@ -408,20 +409,65 @@ func TestUpdateUser(t *testing.T) {
 			// Update User
 			updateBody := CreateJSONReader(testCase.payload, t)
 			req, err := http.NewRequest(http.MethodPut, feast_url+"/api/user", updateBody)
+			if err != nil {
+				t.Fatalf("Error occurred when creating the update request: %v", err)
+			}
 			req.Header.Add("Authorization", "Bearer "+userLoginResponse.Token)
 
 			res, err = http.DefaultClient.Do(req)
-			if res.StatusCode != testCase.responseCode {
-				t.Fatalf("Expected an %d response code, received: %d", testCase.responseCode, res.StatusCode)
-			}
 
 			switch res.StatusCode {
 			case http.StatusOK:
-			//If the Email or Password has changed, the refresh should fail.
+				//If the Email or Password has changed, the refresh should fail.
+				//Update the user
+				if testCase.userInfo.name != testCase.payload.Name {
+					testCase.userInfo.name = testCase.payload.Name
+				}
+
+				if testCase.userInfo.email != testCase.payload.Email {
+					testCase.userInfo.email = testCase.payload.Email
+					refreshShouldFail = true
+				}
+
+				if testCase.userInfo.password != testCase.payload.Password {
+					testCase.userInfo.password = testCase.payload.Password
+					refreshShouldFail = true
+				}
 			default:
-				//If the update failed, the refresh token should still work.
+				//No-op
 			}
 
+			if res.StatusCode != testCase.responseCode {
+				t.Fatalf("Expected an %d response code, received: %d", testCase.responseCode, res.StatusCode)
+			}
+			res.Body.Close()
+
+			//Test refresh
+			req, err = http.NewRequest(http.MethodPut, feast_url+"/api/refresh", nil)
+			if err != nil {
+				t.Fatalf("Error occurred when creating the refresh request: %v", err)
+			}
+			req.Header.Add("Authorization", "Bearer "+userLoginResponse.Token)
+			res, err = http.DefaultClient.Do(req)
+
+			if (res.StatusCode != http.StatusOK && !refreshShouldFail) || (res.StatusCode != http.StatusUnauthorized && refreshShouldFail) {
+				t.Fatalf("Refresh should fail = %v, yet received a status code of %d", refreshShouldFail, res.StatusCode)
+			}
+			res.Body.Close()
+
+			//Test login
+			loginBody = CreateJSONReader(UserLoginPayload{
+				Email:    testCase.userInfo.email,
+				Password: testCase.userInfo.password,
+			}, t)
+			res, err = http.Post(feast_url+"/api/login", "application/json", loginBody)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if res.StatusCode != http.StatusOK {
+				t.Fatalf("Expected an OK response code, received: %d", res.StatusCode)
+			}
+			res.Body.Close()
 		})
 	}
 
