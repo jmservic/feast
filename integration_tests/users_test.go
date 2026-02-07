@@ -376,7 +376,7 @@ func TestUpdateUser(t *testing.T) {
 				UserCreatePayload{
 					Name:     "Jonathan Service",
 					Email:    "Inqindi@example.com",
-					Password: "axel&brie&cindy",
+					Password: "axel&brie&cindy&kalina",
 				},
 			},
 			responseCode: http.StatusOK,
@@ -408,7 +408,7 @@ func TestUpdateUser(t *testing.T) {
 
 			// Update User
 			updateBody := CreateJSONReader(testCase.payload, t)
-			req, err := http.NewRequest(http.MethodPut, feast_url+"/api/user", updateBody)
+			req, err := http.NewRequest(http.MethodPut, feast_url+"/api/users", updateBody)
 			if err != nil {
 				t.Fatalf("Error occurred when creating the update request: %v", err)
 			}
@@ -438,20 +438,22 @@ func TestUpdateUser(t *testing.T) {
 			}
 
 			if res.StatusCode != testCase.responseCode {
-				t.Fatalf("Expected an %d response code, received: %d", testCase.responseCode, res.StatusCode)
+				buffer, _ := io.ReadAll(res.Body)
+				t.Fatalf("Expected an %d response code, received: %d: %v", testCase.responseCode, res.StatusCode, string(buffer))
 			}
 			res.Body.Close()
 
 			//Test refresh
-			req, err = http.NewRequest(http.MethodPut, feast_url+"/api/refresh", nil)
+			req, err = http.NewRequest(http.MethodPost, feast_url+"/api/refresh", nil)
 			if err != nil {
 				t.Fatalf("Error occurred when creating the refresh request: %v", err)
 			}
-			req.Header.Add("Authorization", "Bearer "+userLoginResponse.Token)
+			req.Header.Add("Authorization", "Bearer "+userLoginResponse.RefreshToken)
 			res, err = http.DefaultClient.Do(req)
 
 			if (res.StatusCode != http.StatusOK && !refreshShouldFail) || (res.StatusCode != http.StatusUnauthorized && refreshShouldFail) {
 				t.Fatalf("Refresh should fail = %v, yet received a status code of %d", refreshShouldFail, res.StatusCode)
+
 			}
 			res.Body.Close()
 

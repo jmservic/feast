@@ -21,6 +21,7 @@ const (
 	RefreshTokenStorageErrStr   string = "error storing a refresh token"
 	UserCreationErrStr          string = "error creating a new user"
 	UserIdRetrievalErrStr       string = "error getting user id"
+	UserUpdateErrStr            string = "error updating user information"
 )
 
 const (

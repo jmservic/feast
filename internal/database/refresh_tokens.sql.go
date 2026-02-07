@@ -47,6 +47,18 @@ func (q *Queries) RevokeRefreshToken(ctx context.Context, token string) error {
 	return err
 }
 
+const revokeUserRefreshTokens = `-- name: RevokeUserRefreshTokens :exec
+UPDATE refresh_tokens
+SET updated_at = NOW(),
+	revoked_at = NOW()
+WHERE user_id = $1
+`
+
+func (q *Queries) RevokeUserRefreshTokens(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, revokeUserRefreshTokens, userID)
+	return err
+}
+
 const storeRefreshToken = `-- name: StoreRefreshToken :exec
 INSERT INTO refresh_tokens(token, created_at, updated_at, user_id, expires_at)
 VALUES(

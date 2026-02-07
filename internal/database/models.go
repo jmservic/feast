@@ -11,6 +11,27 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Household struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+	Name      string
+}
+
+type HouseholdMember struct {
+	ID          uuid.UUID
+	Name        pgtype.Text
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Role        pgtype.Int4
+	HouseholdID pgtype.UUID
+	UserID      pgtype.UUID
+}
+
+type HouseholdRole struct {
+	ID   int32
+	Name string
+}
+
 type RefreshToken struct {
 	Token     string
 	CreatedAt time.Time

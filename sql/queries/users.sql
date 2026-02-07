@@ -13,6 +13,10 @@ VALUES (
 SELECT * FROM users
 WHERE email = $1;
 
+-- name: GetUserById :one
+SELECT * FROM users
+WHERE id = $1;
+
 -- name: UpdateUser :one
 UPDATE users
 SET

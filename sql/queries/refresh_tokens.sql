@@ -19,3 +19,10 @@ UPDATE refresh_tokens
 SET updated_at = NOW(),
 	revoked_at = NOW()
 WHERE token = $1;
+
+
+-- name: RevokeUserRefreshTokens :exec
+UPDATE refresh_tokens
+SET updated_at = NOW(),
+	revoked_at = NOW()
+WHERE user_id = $1;
