@@ -310,8 +310,6 @@ func TestUpdateUser(t *testing.T) {
 		userInfo     *UserInfo
 		payload      UserUpdatePayload
 		responseCode int
-		testLogin    bool
-		testRefresh  bool
 		testName     string
 	}{
 		{
@@ -324,8 +322,6 @@ func TestUpdateUser(t *testing.T) {
 				},
 			},
 			responseCode: http.StatusOK,
-			testLogin:    true,
-			testRefresh:  true,
 			testName:     "New User Name",
 		},
 		{
@@ -338,8 +334,6 @@ func TestUpdateUser(t *testing.T) {
 				},
 			},
 			responseCode: http.StatusBadRequest,
-			testLogin:    true,
-			testRefresh:  true,
 			testName:     "Updating to already in use email",
 		},
 		{
@@ -352,8 +346,6 @@ func TestUpdateUser(t *testing.T) {
 				},
 			},
 			responseCode: http.StatusOK,
-			testLogin:    true,
-			testRefresh:  true,
 			testName:     "New Password",
 		},
 		{
@@ -366,8 +358,6 @@ func TestUpdateUser(t *testing.T) {
 				},
 			},
 			responseCode: http.StatusOK,
-			testLogin:    true,
-			testRefresh:  true,
 			testName:     "New Email",
 		},
 		{
@@ -380,8 +370,6 @@ func TestUpdateUser(t *testing.T) {
 				},
 			},
 			responseCode: http.StatusOK,
-			testLogin:    true,
-			testRefresh:  true,
 			testName:     "New Email and Password",
 		},
 	}
