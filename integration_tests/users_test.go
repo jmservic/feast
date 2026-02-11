@@ -451,7 +451,7 @@ func TestUpdateUser(t *testing.T) {
 			}
 			res.Body.Close()
 
-			//Test login
+			//Test login!
 			loginBody = CreateJSONReader(UserLoginPayload{
 				Email:    testCase.userInfo.email,
 				Password: testCase.userInfo.password,
