@@ -1,4 +1,4 @@
-package integration
+package helpers
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func loadDotEnv() {
+func LoadDotEnv() {
 	platform := os.Getenv("PLATFORM")
 
 	if platform != "test" {
@@ -19,7 +19,7 @@ func loadDotEnv() {
 	}
 }
 
-func resetDatabase(feast_url string) {
+func ResetDatabase(feast_url string) {
 	res, err := http.Post(feast_url+"/admin/reset", "application/json", bytes.NewReader([]byte("")))
 	if res.StatusCode != http.StatusOK {
 		log.Printf("Error resetting the database, got the following status code: %d\n", res.StatusCode)
@@ -31,6 +31,6 @@ func resetDatabase(feast_url string) {
 	defer res.Body.Close()
 }
 
-func getFeastURL() string {
+func GetFeastURL() string {
 	return "http://localhost:" + os.Getenv("PORT")
 }

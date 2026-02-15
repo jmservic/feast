@@ -1,10 +1,13 @@
 package integration
 
 import (
-	"github.com/google/uuid"
+	//"github.com/google/uuid"
+	"github.com/jmservic/feast/integration_tests/dto"
+	"github.com/jmservic/feast/integration_tests/helpers"
+	//"github.com/jmservic/feast/integration_tests/constants"
 	"io"
 	"net/http"
-	"os"
+	//"os"
 	"strings"
 	"testing"
 )
@@ -17,92 +20,48 @@ type UserInfo struct {
 
 // TO-DO: Add failing test cases like a bad name, email, or password. Also different email casing
 func TestCreateNewUser(t *testing.T) {
-	loadDotEnv()
+	helpers.LoadDotEnv()
 	name := "jonathan"
 	email := "Jon@examPle.com"
 	password := "very-secret!"
 
-	feast_url := "http://localhost:" + os.Getenv("PORT")
-	t.Cleanup(func() { resetDatabase(feast_url) })
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
 
-	payload := UserCreatePayload{
-		Name:     name,
-		Email:    email,
-		Password: password,
-	}
-
-	body := CreateJSONReader(payload, t)
-
-	res, err := http.Post(feast_url+"/api/users", "application/json", body)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	res := dto.CreateUser(t, feastUrl, name, email, password)
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
 
-	sut := UserCreateResponse{}
-	DecodeJSONResponse(&sut, res.Body, t)
+	sut := dto.UserCreateResponse{}
+	helpers.DecodeJSONResponse(&sut, res.Body, t)
 
-	if sut.Name != name {
-		t.Fatalf("Expected %s, but got %s for the name", name, sut.Name)
-	}
-	if sut.Email != strings.ToLower(email) {
-		t.Fatalf("Expected %s, but got %s for the email", email, sut.Email)
-	}
-	if sut.Id == uuid.Nil {
-		t.Fatal("Got a Nil UUID for the user id")
-	}
-
+	dto.ValidateUserCreateResponse(t, sut, name, email)
 }
 
 func TestCreateDuplicateUserFails(t *testing.T) {
-	loadDotEnv()
+	helpers.LoadDotEnv()
 	name := "jonathan"
 	email := "jon@example.com"
 	password := "very-secret!"
 
-	feast_url := getFeastURL()
-	t.Cleanup(func() { resetDatabase(feast_url) })
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
 
-	payload := UserCreatePayload{
-		Name:     name,
-		Email:    email,
-		Password: password,
-	}
-
-	body := CreateJSONReader(payload, t)
-
-	res, err := http.Post(feast_url+"/api/users", "application/json", body)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
+	res := dto.CreateUser(t, feastUrl, name, email, password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
 
-	sut := UserCreateResponse{}
-	DecodeJSONResponse(&sut, res.Body, t)
+	sut := dto.UserCreateResponse{}
+	helpers.DecodeJSONResponse(&sut, res.Body, t)
 
-	if sut.Name != name {
-		t.Fatalf("Expected %s, but got %s for the name", name, sut.Name)
-	}
-	if sut.Email != email {
-		t.Fatalf("Expected %s, but got %s for the email", email, sut.Email)
-	}
-	if sut.Id == uuid.Nil {
-		t.Fatal("Got a Nil UUID for the user id")
-	}
+	dto.ValidateUserCreateResponse(t, sut, name, email)
 
 	res.Body.Close()
-	body.Seek(0, io.SeekStart)
-	res, err = http.Post(feast_url+"/api/users", "application/json", body)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	res = dto.CreateUser(t, feastUrl, name, email, password)
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusBadRequest {
@@ -111,81 +70,55 @@ func TestCreateDuplicateUserFails(t *testing.T) {
 }
 
 func TestUserLogin(t *testing.T) {
-	loadDotEnv()
-	feast_url := getFeastURL()
-	t.Cleanup(func() { resetDatabase(feast_url) })
+	helpers.LoadDotEnv()
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
 
 	name := "jonathan"
 	email := "jon@example.com"
 	password := "very-secret!"
 
 	//Create the user
-	payload := UserCreatePayload{
-		Name:     name,
-		Email:    email,
-		Password: password,
-	}
-
-	body := CreateJSONReader(payload, t)
-	res, err := http.Post(feast_url+"/api/users", "application/json", body)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
+	res := dto.CreateUser(t, feastUrl, name, email, password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
 
-	userCreateResponse := UserCreateResponse{}
-	DecodeJSONResponse(&userCreateResponse, res.Body, t)
+	userCreateResponse := dto.UserCreateResponse{}
+	helpers.DecodeJSONResponse(&userCreateResponse, res.Body, t)
 
-	if userCreateResponse.Name != name {
-		t.Fatalf("Expected %s, but got %s for the name", name, userCreateResponse.Name)
-	}
-	if userCreateResponse.Email != email {
-		t.Fatalf("Expected %s, but got %s for the email", email, userCreateResponse.Email)
-	}
-	if userCreateResponse.Id == uuid.Nil {
-		t.Fatal("Got a Nil UUID for the user id")
-	}
+	dto.ValidateUserCreateResponse(t, userCreateResponse, name, email)
 
 	res.Body.Close()
 
 	//Authenticate the user
 	testCases := []struct {
-		payload      UserLoginPayload
+		email        string
+		password     string
 		responseCode int
 		testName     string
 	}{
 		{
-			payload: UserLoginPayload{
-				Email:    email,
-				Password: password,
-			},
+			email:        email,
+			password:     password,
 			responseCode: http.StatusOK,
 			testName:     "Correct Credentials",
 		},
 		{
-			payload: UserLoginPayload{
-				Email:    email,
-				Password: "wrong-passw0rd",
-			},
+			email:        email,
+			password:     "wrong-passw0rd",
 			responseCode: http.StatusUnauthorized,
 			testName:     "Incorrect Password",
 		},
 		{
-			payload: UserLoginPayload{
-				Email:    "user@example.com",
-				Password: password,
-			},
+			email:        "user@example.com",
+			password:     password,
 			responseCode: http.StatusUnauthorized,
 			testName:     "Incorrect Email",
 		},
 		{
-			payload: UserLoginPayload{
-				Email:    strings.ToUpper(email),
-				Password: password,
-			},
+			email:        strings.ToUpper(email),
+			password:     password,
 			responseCode: http.StatusOK,
 			testName:     "Correct Credentials with different email casing.",
 		},
@@ -193,22 +126,17 @@ func TestUserLogin(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			body := CreateJSONReader(testCase.payload, t)
-			res, err := http.Post(feast_url+"/api/login", "application/json", body)
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
-
+			res := dto.UserLogin(t, feastUrl, testCase.email, testCase.password)
 			if res.StatusCode != testCase.responseCode {
 				t.Fatalf("Expected status code %d, got: %d", testCase.responseCode, res.StatusCode)
 			}
 
 			switch res.StatusCode {
 			case http.StatusOK:
-				sut := UserLoginResponse{}
-				DecodeJSONResponse(&sut, res.Body, t)
+				sut := dto.UserLoginResponse{}
+				helpers.DecodeJSONResponse(&sut, res.Body, t)
 
-				if sut.Email != strings.ToLower(testCase.payload.Email) {
+				if sut.Email != strings.ToLower(testCase.email) {
 					t.Fatal("Payload and response emails do not match")
 				}
 				if len(sut.Token) == 0 {
@@ -225,9 +153,9 @@ func TestUserLogin(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	loadDotEnv()
-	feast_url := getFeastURL()
-	t.Cleanup(func() { resetDatabase(feast_url) })
+	helpers.LoadDotEnv()
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
 
 	firstUser := UserInfo{
 		name:     "jonathan",
@@ -243,132 +171,77 @@ func TestUpdateUser(t *testing.T) {
 
 	// Create the two users
 	//first user
-	payload := UserCreatePayload{
-		Name:     firstUser.name,
-		Email:    firstUser.email,
-		Password: firstUser.password,
-	}
-
-	body := CreateJSONReader(payload, t)
-	res, err := http.Post(feast_url+"/api/users", "application/json", body)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	res := dto.CreateUser(t, feastUrl, firstUser.name, firstUser.email, firstUser.password)
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
 
-	userCreateResponse := UserCreateResponse{}
-	DecodeJSONResponse(&userCreateResponse, res.Body, t)
+	userCreateResponse := dto.UserCreateResponse{}
+	helpers.DecodeJSONResponse(&userCreateResponse, res.Body, t)
 
-	if userCreateResponse.Name != firstUser.name {
-		t.Fatalf("Expected %s, but got %s for the name", firstUser.name, userCreateResponse.Name)
-	}
-	if userCreateResponse.Email != firstUser.email {
-		t.Fatalf("Expected %s, but got %s for the email", firstUser.email, userCreateResponse.Email)
-	}
-	if userCreateResponse.Id == uuid.Nil {
-		t.Fatal("Got a Nil UUID for the user id")
-	}
+	dto.ValidateUserCreateResponse(t, userCreateResponse, firstUser.name, firstUser.email)
 
 	res.Body.Close()
 
 	//second user
-	payload = UserCreatePayload{
-		Name:     secondUser.name,
-		Email:    secondUser.email,
-		Password: secondUser.password,
-	}
-
-	body = CreateJSONReader(payload, t)
-	res, err = http.Post(feast_url+"/api/users", "application/json", body)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	res = dto.CreateUser(t, feastUrl, secondUser.name, secondUser.email, secondUser.password)
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
 
-	userCreateResponse = UserCreateResponse{}
-	DecodeJSONResponse(&userCreateResponse, res.Body, t)
+	userCreateResponse = dto.UserCreateResponse{}
+	helpers.DecodeJSONResponse(&userCreateResponse, res.Body, t)
 
-	if userCreateResponse.Name != secondUser.name {
-		t.Fatalf("Expected %s, but got %s for the name", secondUser.name, userCreateResponse.Name)
-	}
-	if userCreateResponse.Email != secondUser.email {
-		t.Fatalf("Expected %s, but got %s for the email", secondUser.email, userCreateResponse.Email)
-	}
-	if userCreateResponse.Id == uuid.Nil {
-		t.Fatal("Got a Nil UUID for the user id")
-	}
-
+	dto.ValidateUserCreateResponse(t, userCreateResponse, secondUser.name, secondUser.email)
 	res.Body.Close()
 
 	testCases := []struct {
 		userInfo     *UserInfo
-		payload      UserUpdatePayload
+		newName      string
+		newEmail     string
+		newPassword  string
 		responseCode int
 		testName     string
 	}{
 		{
-			userInfo: &firstUser,
-			payload: UserUpdatePayload{
-				UserCreatePayload{
-					Name:     "Jonathan Service",
-					Email:    firstUser.email,
-					Password: firstUser.password,
-				},
-			},
+			userInfo:     &firstUser,
+			newName:      "Jonathan Service",
+			newEmail:     firstUser.email,
+			newPassword:  firstUser.password,
 			responseCode: http.StatusOK,
 			testName:     "New User Name",
 		},
 		{
-			userInfo: &firstUser,
-			payload: UserUpdatePayload{
-				UserCreatePayload{
-					Name:     "Jonathan Service",
-					Email:    secondUser.email,
-					Password: "different-password",
-				},
-			},
+			userInfo:     &firstUser,
+			newName:      "Jonathan Service",
+			newEmail:     secondUser.email,
+			newPassword:  "different-password",
 			responseCode: http.StatusBadRequest,
 			testName:     "Updating to already in use email",
 		},
 		{
-			userInfo: &secondUser,
-			payload: UserUpdatePayload{
-				UserCreatePayload{
-					Name:     secondUser.name,
-					Email:    secondUser.email,
-					Password: "bobina",
-				},
-			},
+			userInfo:     &secondUser,
+			newName:      secondUser.name,
+			newEmail:     secondUser.email,
+			newPassword:  "bobina",
 			responseCode: http.StatusOK,
 			testName:     "New Password",
 		},
 		{
-			userInfo: &secondUser,
-			payload: UserUpdatePayload{
-				UserCreatePayload{
-					Name:     secondUser.name,
-					Email:    "castadon@example.com",
-					Password: "bobina",
-				},
-			},
+			userInfo:     &secondUser,
+			newName:      secondUser.name,
+			newEmail:     "castadon@example.com",
+			newPassword:  "bobina",
 			responseCode: http.StatusOK,
 			testName:     "New Email",
 		},
 		{
-			userInfo: &firstUser,
-			payload: UserUpdatePayload{
-				UserCreatePayload{
-					Name:     "Jonathan Service",
-					Email:    "Inqindi@example.com",
-					Password: "axel&brie&cindy&kalina",
-				},
-			},
+			userInfo:     &firstUser,
+			newName:      "Jonathan Service",
+			newEmail:     "Inqindi@example.com",
+			newPassword:  "axel&brie&cindy&kalina",
 			responseCode: http.StatusOK,
 			testName:     "New Email and Password",
 		},
@@ -378,50 +251,32 @@ func TestUpdateUser(t *testing.T) {
 		t.Run(testCase.testName, func(t *testing.T) {
 			refreshShouldFail := false
 			//Login
-			loginBody := CreateJSONReader(UserLoginPayload{
-				Email:    testCase.userInfo.email,
-				Password: testCase.userInfo.password,
-			}, t)
-			res, err := http.Post(feast_url+"/api/login", "application/json", loginBody)
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
+			res := dto.UserLogin(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
 			if res.StatusCode != http.StatusOK {
 				t.Fatalf("Expected an OK response code, received: %d", res.StatusCode)
 			}
 
-			userLoginResponse := UserLoginResponse{}
-			DecodeJSONResponse(&userLoginResponse, res.Body, t)
+			userLoginResponse := dto.UserLoginResponse{}
+			helpers.DecodeJSONResponse(&userLoginResponse, res.Body, t)
 			res.Body.Close()
 
 			// Update User
-			updateBody := CreateJSONReader(testCase.payload, t)
-			req, err := http.NewRequest(http.MethodPut, feast_url+"/api/users", updateBody)
-			if err != nil {
-				t.Fatalf("Error occurred when creating the update request: %v", err)
-			}
-			req.Header.Add("Authorization", "Bearer "+userLoginResponse.Token)
-
-			res, err = http.DefaultClient.Do(req)
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
-
+			res = dto.UserUpdate(t, feastUrl, userLoginResponse.Token, testCase.newName, testCase.newEmail, testCase.newPassword)
 			switch res.StatusCode {
 			case http.StatusOK:
 				//If the Email or Password has changed, the refresh should fail.
 				//Update the user
-				if testCase.userInfo.name != testCase.payload.Name {
-					testCase.userInfo.name = testCase.payload.Name
+				if testCase.userInfo.name != testCase.newName {
+					testCase.userInfo.name = testCase.newName
 				}
 
-				if testCase.userInfo.email != testCase.payload.Email {
-					testCase.userInfo.email = testCase.payload.Email
+				if testCase.userInfo.email != testCase.newEmail {
+					testCase.userInfo.email = testCase.newEmail
 					refreshShouldFail = true
 				}
 
-				if testCase.userInfo.password != testCase.payload.Password {
-					testCase.userInfo.password = testCase.payload.Password
+				if testCase.userInfo.password != testCase.newPassword {
+					testCase.userInfo.password = testCase.newPassword
 					refreshShouldFail = true
 				}
 			default:
@@ -435,15 +290,7 @@ func TestUpdateUser(t *testing.T) {
 			res.Body.Close()
 
 			//Test refresh
-			req, err = http.NewRequest(http.MethodPost, feast_url+"/api/refresh", nil)
-			if err != nil {
-				t.Fatalf("Error occurred when creating the refresh request: %v", err)
-			}
-			req.Header.Add("Authorization", "Bearer "+userLoginResponse.RefreshToken)
-			res, err = http.DefaultClient.Do(req)
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
+			res = dto.UserRefresh(t, feastUrl, userLoginResponse.RefreshToken)
 
 			if (res.StatusCode != http.StatusOK && !refreshShouldFail) || (res.StatusCode != http.StatusUnauthorized && refreshShouldFail) {
 				t.Fatalf("Refresh should fail = %v, yet received a status code of %d", refreshShouldFail, res.StatusCode)
@@ -452,14 +299,7 @@ func TestUpdateUser(t *testing.T) {
 			res.Body.Close()
 
 			//Test login!
-			loginBody = CreateJSONReader(UserLoginPayload{
-				Email:    testCase.userInfo.email,
-				Password: testCase.userInfo.password,
-			}, t)
-			res, err = http.Post(feast_url+"/api/login", "application/json", loginBody)
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
+			res = dto.UserLogin(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
 			if res.StatusCode != http.StatusOK {
 				t.Fatalf("Expected an OK response code, received: %d", res.StatusCode)
 			}
