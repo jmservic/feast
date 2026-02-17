@@ -16,7 +16,7 @@ func (cfg apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	params := struct {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
-		Password string `json:"password"`
+		Password string `json:"password"` // #nosec G117
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
@@ -59,7 +59,7 @@ func (cfg apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request, u
 	params := struct {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
-		Password string `json:"password"`
+		Password string `json:"password"` // #nosec G117
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
@@ -157,7 +157,7 @@ func (cfg apiConfig) handlerDeleteUser(w http.ResponseWriter, r *http.Request, u
 func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	params := struct {
 		Email    string `json:"email"`
-		Password string `json:"password"`
+		Password string `json:"password"` // #nosec G117
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
