@@ -151,7 +151,13 @@ func (cfg apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request, u
 }
 
 func (cfg apiConfig) handlerDeleteUser(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	err := cfg.db.DeleteUser(r.Context(), userId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.UserDeleteErrStr, err)
+		return
+	}
 
+	w.WriteHeader(http.StatusOK)
 }
 
 func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {

@@ -39,7 +39,7 @@ func ValidateUserCreateResponse(t *testing.T, userCreateResponse UserCreateRespo
 
 }
 
-func UserLogin(t *testing.T, feastUrl, email, password string) *http.Response {
+func LoginUser(t *testing.T, feastUrl, email, password string) *http.Response {
 	payload := UserLoginPayload{
 		Email:    email,
 		Password: password,
@@ -52,7 +52,7 @@ func UserLogin(t *testing.T, feastUrl, email, password string) *http.Response {
 	return res
 }
 
-func UserRefresh(t *testing.T, feastUrl, refreshToken string) *http.Response {
+func RefreshUser(t *testing.T, feastUrl, refreshToken string) *http.Response {
 	req, err := http.NewRequest(http.MethodPost, feastUrl+constants.RefreshPath, nil)
 	if err != nil {
 		t.Fatalf("Error occurred when creating the refresh request: %v", err)
@@ -67,7 +67,7 @@ func UserRefresh(t *testing.T, feastUrl, refreshToken string) *http.Response {
 
 }
 
-func UserUpdate(t *testing.T, feastUrl, token, name, email, password string) *http.Response {
+func UpdateUser(t *testing.T, feastUrl, token, name, email, password string) *http.Response {
 	payload := UserUpdatePayload{
 		UserCreatePayload: UserCreatePayload{
 			Name:     name,
@@ -79,6 +79,20 @@ func UserUpdate(t *testing.T, feastUrl, token, name, email, password string) *ht
 	req, err := http.NewRequest(http.MethodPut, feastUrl+constants.UsersPath, updateBody)
 	if err != nil {
 		t.Fatalf("Error occurred when creating the update request: %v", err)
+	}
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	return res
+}
+
+func DeleteUser(t *testing.T, feastUrl, token string) *http.Response {
+	req, err := http.NewRequest(http.MethodDelete, feastUrl+constants.UsersPath, nil)
+	if err != nil {
+		t.Fatalf("error occurred when creating the delete request: %v", err)
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 

@@ -27,4 +27,8 @@ SET
 WHERE id = $4
 RETURNING *;
 
+-- name: DeleteUser :exec
+DELETE FROM users
+WHERE id = $1;
+
 

@@ -126,7 +126,7 @@ func TestUserLogin(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			res := dto.UserLogin(t, feastUrl, testCase.email, testCase.password)
+			res := dto.LoginUser(t, feastUrl, testCase.email, testCase.password)
 			if res.StatusCode != testCase.responseCode {
 				t.Fatalf("Expected status code %d, got: %d", testCase.responseCode, res.StatusCode)
 			}
@@ -251,7 +251,7 @@ func TestUpdateUser(t *testing.T) {
 		t.Run(testCase.testName, func(t *testing.T) {
 			refreshShouldFail := false
 			//Login
-			res := dto.UserLogin(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
+			res := dto.LoginUser(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
 			if res.StatusCode != http.StatusOK {
 				t.Fatalf("Expected an OK response code, received: %d", res.StatusCode)
 			}
@@ -261,7 +261,7 @@ func TestUpdateUser(t *testing.T) {
 			res.Body.Close()
 
 			// Update User
-			res = dto.UserUpdate(t, feastUrl, userLoginResponse.Token, testCase.newName, testCase.newEmail, testCase.newPassword)
+			res = dto.UpdateUser(t, feastUrl, userLoginResponse.Token, testCase.newName, testCase.newEmail, testCase.newPassword)
 			switch res.StatusCode {
 			case http.StatusOK:
 				//If the Email or Password has changed, the refresh should fail.
@@ -290,7 +290,7 @@ func TestUpdateUser(t *testing.T) {
 			res.Body.Close()
 
 			//Test refresh
-			res = dto.UserRefresh(t, feastUrl, userLoginResponse.RefreshToken)
+			res = dto.RefreshUser(t, feastUrl, userLoginResponse.RefreshToken)
 
 			if (res.StatusCode != http.StatusOK && !refreshShouldFail) || (res.StatusCode != http.StatusUnauthorized && refreshShouldFail) {
 				t.Fatalf("Refresh should fail = %v, yet received a status code of %d", refreshShouldFail, res.StatusCode)
@@ -299,7 +299,7 @@ func TestUpdateUser(t *testing.T) {
 			res.Body.Close()
 
 			//Test login!
-			res = dto.UserLogin(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
+			res = dto.LoginUser(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
 			if res.StatusCode != http.StatusOK {
 				t.Fatalf("Expected an OK response code, received: %d", res.StatusCode)
 			}
@@ -307,4 +307,96 @@ func TestUpdateUser(t *testing.T) {
 		})
 	}
 
+}
+
+func TestDeleteUser(t *testing.T) {
+	helpers.LoadDotEnv()
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+
+	firstUser := UserInfo{
+		name:     "jonathan",
+		email:    "jon@example.com",
+		password: "very-secret!",
+	}
+
+	secondUser := UserInfo{
+		name:     "cassidy",
+		email:    "cassidy@example.com",
+		password: "kalina",
+	}
+
+	// Create the two users
+	//first user
+	res := dto.CreateUser(t, feastUrl, firstUser.name, firstUser.email, firstUser.password)
+
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
+	}
+
+	userCreateResponse := dto.UserCreateResponse{}
+	helpers.DecodeJSONResponse(&userCreateResponse, res.Body, t)
+
+	dto.ValidateUserCreateResponse(t, userCreateResponse, firstUser.name, firstUser.email)
+
+	res.Body.Close()
+
+	//second user
+	res = dto.CreateUser(t, feastUrl, secondUser.name, secondUser.email, secondUser.password)
+
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
+	}
+
+	userCreateResponse = dto.UserCreateResponse{}
+	helpers.DecodeJSONResponse(&userCreateResponse, res.Body, t)
+
+	dto.ValidateUserCreateResponse(t, userCreateResponse, secondUser.name, secondUser.email)
+	res.Body.Close()
+
+	//Login for first user
+	res = dto.LoginUser(t, feastUrl, firstUser.email, firstUser.password)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected status ok for user login, got : %d", res.StatusCode)
+	}
+	userLoginResponse := dto.UserLoginResponse{}
+	helpers.DecodeJSONResponse(&userLoginResponse, res.Body, t)
+	res.Body.Close()
+
+	testCases := []struct {
+		userInfo        *UserInfo
+		token, testName string
+		responseCode    int
+	}{
+		{
+			userInfo:     &firstUser,
+			token:        userLoginResponse.Token,
+			testName:     "Successful",
+			responseCode: http.StatusOK,
+		},
+		{
+			userInfo:     &secondUser,
+			token:        "bad-token",
+			testName:     "Failure",
+			responseCode: http.StatusUnauthorized,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			// Test Delete
+			res := dto.DeleteUser(t, feastUrl, testCase.token)
+			if res.StatusCode != testCase.responseCode {
+				t.Errorf("Expected status code of %d for the delete request, got : %d", testCase.responseCode, res.StatusCode)
+			}
+			res.Body.Close()
+
+			// Test Login
+			res = dto.LoginUser(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
+			defer res.Body.Close()
+			if (testCase.responseCode == http.StatusOK && res.StatusCode != http.StatusUnauthorized) || (testCase.responseCode == http.StatusBadRequest && res.StatusCode != http.StatusOK) {
+				t.Fatalf("Delete expected response code = %d, but received a login response code of %d", testCase.responseCode, res.StatusCode)
+			}
+		})
+	}
 }

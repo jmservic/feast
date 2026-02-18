@@ -22,6 +22,7 @@ const (
 	UserCreationErrStr          string = "error creating a new user"
 	UserIdRetrievalErrStr       string = "error getting user id"
 	UserUpdateErrStr            string = "error updating user information"
+	UserDeleteErrStr            string = "error deleting the user"
 )
 
 const (
