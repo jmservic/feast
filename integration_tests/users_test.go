@@ -364,19 +364,21 @@ func TestDeleteUser(t *testing.T) {
 	res.Body.Close()
 
 	testCases := []struct {
-		userInfo        *UserInfo
-		token, testName string
-		responseCode    int
+		userInfo                      *UserInfo
+		token, refreshToken, testName string
+		responseCode                  int
 	}{
 		{
 			userInfo:     &firstUser,
 			token:        userLoginResponse.Token,
+			refreshToken: userLoginResponse.RefreshToken,
 			testName:     "Successful",
 			responseCode: http.StatusOK,
 		},
 		{
 			userInfo:     &secondUser,
 			token:        "bad-token",
+			refreshToken: "",
 			testName:     "Failure",
 			responseCode: http.StatusUnauthorized,
 		},
@@ -393,9 +395,15 @@ func TestDeleteUser(t *testing.T) {
 
 			// Test Login
 			res = dto.LoginUser(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
-			defer res.Body.Close()
+			res.Body.Close()
 			if (testCase.responseCode == http.StatusOK && res.StatusCode != http.StatusUnauthorized) || (testCase.responseCode == http.StatusBadRequest && res.StatusCode != http.StatusOK) {
 				t.Fatalf("Delete expected response code = %d, but received a login response code of %d", testCase.responseCode, res.StatusCode)
+			}
+
+			// Test Refresh if we have a token
+			if testCase.refreshToken != "" {
+				res = dto.RefreshUser(t, feastUrl, testCase.refreshToken)
+				//If the delete was successful this should fail, else it should succeed.
 			}
 		})
 	}
