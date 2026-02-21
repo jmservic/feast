@@ -24,7 +24,6 @@ func (cfg apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusUnauthorized, constants.RefreshTokenInvalidErrStr, err)
 			return
 		} else {
-
 			respondWithError(w, http.StatusInternalServerError, constants.RefreshTokenCheckingErrStr, err)
 			return
 		}

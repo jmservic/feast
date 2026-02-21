@@ -396,7 +396,8 @@ func TestDeleteUser(t *testing.T) {
 			// Test Login
 			res = dto.LoginUser(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
 			res.Body.Close()
-			if (testCase.responseCode == http.StatusOK && res.StatusCode != http.StatusUnauthorized) || (testCase.responseCode == http.StatusBadRequest && res.StatusCode != http.StatusOK) {
+			if (testCase.responseCode == http.StatusOK && res.StatusCode != http.StatusUnauthorized) ||
+				(testCase.responseCode == http.StatusBadRequest && res.StatusCode != http.StatusOK) {
 				t.Fatalf("Delete expected response code = %d, but received a login response code of %d", testCase.responseCode, res.StatusCode)
 			}
 
@@ -404,6 +405,11 @@ func TestDeleteUser(t *testing.T) {
 			if testCase.refreshToken != "" {
 				res = dto.RefreshUser(t, feastUrl, testCase.refreshToken)
 				//If the delete was successful this should fail, else it should succeed.
+				if (testCase.responseCode == http.StatusOK && res.StatusCode != http.StatusUnauthorized) ||
+					(testCase.responseCode == http.StatusBadRequest && res.StatusCode != http.StatusOK) {
+					t.Fatalf("Delet expected response code = %d, but received a refresh token response code of %d", testCase.responseCode, res.StatusCode)
+				}
+				res.Body.Close()
 			}
 		})
 	}
