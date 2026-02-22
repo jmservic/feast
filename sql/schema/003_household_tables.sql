@@ -17,14 +17,14 @@ CREATE TABLE household_members (
 	created_at TIMESTAMP NOT NULL,
 	updated_at TIMESTAMP NOT NULL,
 	role INTEGER REFERENCES household_roles (id), 
-	household_id UUID REFERENCES households (id),
+	household_id UUID REFERENCES households (id) ON DELETE CASCADE,
 	user_id UUID REFERENCES users (id)
 );
 
 
 -- procedures
 -- +goose StatementBegin
-CREATE PROCEDURE create_household (name TEXT, userId UUID) AS $$
+CREATE OR REPLACE PROCEDURE create_household (name TEXT, userId UUID) RETURNS UUID AS $$
 DECLARE
 	household_id UUID := gen_random_uuid();
 	member_name TEXT := (SELECT name FROM users WHERE id = userId); 
@@ -51,7 +51,7 @@ BEGIN
 		userId
 	);
 	
-	--SELECT * FROM households WHERE id = household_id;
+	SELECT * FROM households WHERE id = household_id;
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
