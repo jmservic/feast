@@ -56,6 +56,8 @@ END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
+-- Need Insert, invite and delete procedures
+
 -- initial data
 INSERT INTO household_roles (name) 
 VALUES
