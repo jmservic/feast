@@ -29,7 +29,7 @@ DECLARE
 	household_id UUID := gen_random_uuid();
 	member_name TEXT := (SELECT name FROM users WHERE id = userId); 
 BEGIN 
--- add a check for if the user is already apart of a household.
+-- add a check for if the user is already apart of a household. bump
 	INSERT INTO households ( id, created_at, updated_at, name )
     VALUES
 	(
