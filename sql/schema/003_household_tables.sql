@@ -18,18 +18,21 @@ CREATE TABLE household_members (
 	updated_at TIMESTAMP NOT NULL,
 	role INTEGER REFERENCES household_roles (id), 
 	household_id UUID REFERENCES households (id) ON DELETE CASCADE,
-	user_id UUID REFERENCES users (id)
+	user_id UUID UNIQUE REFERENCES users (id)
 );
 
 
 -- procedures
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE create_household (name TEXT, userId UUID) RETURNS UUID AS $$
+CREATE OR REPLACE PROCEDURE create_household (name TEXT, userId UUID, out household_id UUID) AS $$
 DECLARE
-	household_id UUID := gen_random_uuid();
 	member_name TEXT := (SELECT name FROM users WHERE id = userId); 
 BEGIN 
 -- add a check for if the user is already apart of a household. bump.
+	IF 
+		RAISE unique_violation USING DETAIL = 'User is already a part of a household.';
+	
+	household_id := gen_random_uuid();
 	INSERT INTO households ( id, created_at, updated_at, name )
     VALUES
 	(
