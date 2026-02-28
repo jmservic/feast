@@ -28,9 +28,14 @@ CREATE OR REPLACE PROCEDURE create_household (name TEXT, userId UUID, out househ
 DECLARE
 	member_name TEXT := (SELECT name FROM users WHERE id = userId); 
 BEGIN 
--- add a check for if the user is already apart of a household. bump.
-	IF 
+	-- Is the user already in a household?
+	SELECT household_id INTO household_id
+	FROM household_members 
+	WHERE user_id = userId;
+
+	IF FOUND THEN 
 		RAISE unique_violation USING DETAIL = 'User is already a part of a household.';
+	END IF;
 	
 	household_id := gen_random_uuid();
 	INSERT INTO households ( id, created_at, updated_at, name )
@@ -53,8 +58,6 @@ BEGIN
 		household_id,
 		userId
 	);
-	
-	SELECT * FROM households WHERE id = household_id;
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
