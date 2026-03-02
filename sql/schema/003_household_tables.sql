@@ -22,10 +22,12 @@ CREATE TABLE household_members (
 );
 
 CREATE TABLE household_invites (
-	inviter_id UUID REFERENCES users (id),
-	invitee_id UUID REFERENCES users (id),
+	inviter_id UUID NOT NULL REFERENCES users (id),
+	invitee_id UUID NOT NULL REFERENCES users (id),
 	household_member_id UUID REFERENCES household_members (id),
+	household_id UUID NOT NULL REFERENCES households (id),
 	created_at TIMESTAMP NOT NULL,
+	UNIQUE(invitee_id, household_id)
 );
 
 
@@ -146,6 +148,51 @@ END;
 $$ LANGUAGE plpgsql 
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE invite_user_to_household ( inviter uuid, invitee uuid, household_id uuid, household_member_id uuid ) AS $$
+DECLARE 
+	household_member_household_id uuid;
+	inviter_household_id uuid;
+BEGIN
+	--check if user is already a part of another household.
+	SELECT id FROM household_members WHERE user_id = invitee;
+	IF FOUND THEN
+		RAISE EXCEPTION 'Invitee is already a part of a household';
+	END IF;
+
+	SELECT household_id FROM household_members WHERE user_id = inviter;
+	IF inviter_household_id <> household_id THEN
+		RAISE EXCEPTION 'Inviter cannot invite to a household that isn''t their own';
+	END IF;
+	--Check if the invitee actually has permission to invite.
+
+	IF household_member_id IS NOT NULL THEN
+		SELECT household_id INTO household_member_household_id 
+		FROM household_members WHERE id = household_member_id;
+		
+		IF household_member_household_id <> household_id
+			RAISE EXCEPTION 'household member isn''t apart of the same household';
+		END IF;
+	END IF;
+
+	INSERT INTO household_invites ( inviter_id, invitee_id, household_member_id, household_id, created_at )
+	VALUES (
+		inviter,
+		invitee,
+		household_member_id,
+		household_id,
+		NOW()
+	);
+END;
+$$ LANGUAGE plpgsql
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE accept_household_invite ( invitee uuid, household_id uuid ) AS $$
+BEGIN
+END;
+$$ LANGUAGE plpgsql
+-- +goose StatementEnd
 -- Need Insert, invite and delete procedures
 
 -- initial data
@@ -157,8 +204,11 @@ VALUES
 	('member');
 
 -- +goose Down
+DROP TABLE household_invites;
 DROP TABLE household_members;
 DROP TABLE household_roles;
 DROP TABLE households;
 DROP PROCEDURE create_household;
 DROP PROCEDURE create_household_member;
+DROP PROCEDURE delete_household_member;
+DROP PROCEDURE invite_user_to_household;
