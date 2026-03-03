@@ -170,7 +170,7 @@ BEGIN
 		SELECT household_id INTO household_member_household_id 
 		FROM household_members WHERE id = household_member_id;
 		
-		IF household_member_household_id <> household_id
+		IF household_member_household_id <> household_id THEN
 			RAISE EXCEPTION 'household member isn''t apart of the same household';
 		END IF;
 	END IF;
@@ -188,8 +188,27 @@ $$ LANGUAGE plpgsql
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE accept_household_invite ( invitee uuid, household_id uuid ) AS $$
+CREATE OR REPLACE PROCEDURE accept_household_invite ( invitee_id uuid, household_id uuid ) AS $$
+DECLARE
+	invite_info record;
+	member_name text;
 BEGIN
+	SELECT * INTO invite_info FROM household_invites WHERE invitee_id = invitee_id AND household_id = household_id;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION 'No invite found';
+	END IF;
+
+	IF invite_info.household_member_id IS NOT NULL
+	THEN
+		UPDATE household_members
+			SET user_id = invitee_id
+		WHERE id = invite_info.household_member_id;
+	ELSE 
+		SELECT name INTO member_name FROM users WHERE id = invitee_id;
+		CALL create_household_member(member_name, invitee_id, household_id);
+	END IF;
+
+	DELETE FROM household_invites WHERE invitee_id = invitee_id;
 END;
 $$ LANGUAGE plpgsql
 -- +goose StatementEnd
@@ -212,3 +231,4 @@ DROP PROCEDURE create_household;
 DROP PROCEDURE create_household_member;
 DROP PROCEDURE delete_household_member;
 DROP PROCEDURE invite_user_to_household;
+DROP PROCEDURE accept_household_invite;
