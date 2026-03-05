@@ -30,6 +30,37 @@ CREATE TABLE household_invites (
 	UNIQUE(invitee_id, household_id)
 );
 
+-- functions
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION can_create_member ( userId UUID ) RETURNS BOOLEAN AS $$
+DECLARE 
+	user_role_id integer;
+	manager_row_id integer;
+	manager_name text := 'manager';
+
+BEGIN
+	SELECT role INTO user_role_id FROM  household_members WHERE user_id = userId;
+	IF NOT FOUND THEN
+		RETURN false;
+	ELSE
+		SELECT id FROM household_roles INTO manager_row_id WHERE name = manager_name;
+		IF NOT FOUND THEN
+			RAISE EXCEPTION 'household role % not found', manager_name;
+		END IF;
+
+		RETURN user_role <= manager_row_id;
+	END IF;
+END;
+$$ LANGUAGE plpgsql
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION can_delete_member ( userId UUID ) RETURNS BOOLEAN AS $$
+BEGIN
+	RETURN can_create_member(userId);
+END;
+$$ LANGUAGE plpgsql
+-- +goose StatementEnd
 
 -- procedures
 -- +goose StatementBegin
@@ -104,6 +135,40 @@ $$ LANGUAGE plpgsql
 -- +goose StatementEnd
 
 -- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE user_delete_household_member ( user_id uuid, household_member_id uuid ) AS $$
+DECLARE
+	user_household_member_info record;
+	household_member_info record;
+BEGIN
+	
+	IF NOT can_delete_member(user_id) THEN
+		RAISE EXCEPTION '% does not have sufficient permission to delete a member from the household', user_id;
+	END IF;
+
+	SELECT role, household_id INTO user_household_member_info WHERE user_id = user_id;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION '% user is not a part of a household', user_id;
+	END IF;
+
+	SELECT role, household_id, user_id INTO household_member_info WHERE id = household_member_id;
+	IF NOT FOUND THEN 
+		RAISE EXCEPTION '% member does not exist', household_member_id;
+	END IF;
+
+	IF user_household_member_info.household_id <> household_member_info.household_id THEN
+		RAISE EXCEPTION 'you cannot delete a member from another household';
+	END IF;
+
+	IF household_member_info.user_id IS NOT NULL AND user_household_member_info.role >= household_member_info.role THEN
+		RAISE EXCEPTION 'you cannot delete a household member that has an equal or higher role than you and is a user';
+	END IF;
+
+	CALL delete_household_member(household_member_id);
+END;
+$$ LANGUAGE plpgsql
+-- +goose StatementEnd
+
+-- +goose StatementBegin
 CREATE OR REPLACE PROCEDURE delete_household_member ( household_member_id uuid ) AS $$
 DECLARE
 	member_info record;
@@ -164,7 +229,12 @@ BEGIN
 	IF inviter_household_id <> household_id THEN
 		RAISE EXCEPTION 'Inviter cannot invite to a household that isn''t their own';
 	END IF;
+
 	--Check if the invitee actually has permission to invite.
+	IF NOT can_create_member(inviter) THEN
+		RAISE EXCEPTION '% does not have sufficient permission to invite to the household', inviter;
+	END IF;
+
 
 	IF household_member_id IS NOT NULL THEN
 		SELECT household_id INTO household_member_household_id 
@@ -212,7 +282,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
 -- +goose StatementEnd
--- Need Insert, invite and delete procedures
 
 -- initial data
 INSERT INTO household_roles (name) 
@@ -223,12 +292,15 @@ VALUES
 	('member');
 
 -- +goose Down
-DROP TABLE household_invites;
-DROP TABLE household_members;
-DROP TABLE household_roles;
-DROP TABLE households;
-DROP PROCEDURE create_household;
-DROP PROCEDURE create_household_member;
-DROP PROCEDURE delete_household_member;
-DROP PROCEDURE invite_user_to_household;
-DROP PROCEDURE accept_household_invite;
+DROP TABLE IF EXISTS household_invites;
+DROP TABLE IF EXISTS household_members;
+DROP TABLE IF EXISTS household_roles;
+DROP TABLE IF EXISTS households;
+DROP FUNCTION IF EXISTS can_create_member;
+DROP FUNCTION IF EXISTS can_delete_member;
+DROP PROCEDURE IF EXISTS create_household;
+DROP PROCEDURE IF EXISTS create_household_member;
+DROP PROCEDURE IF EXISTS user_delete_household_member;
+DROP PROCEDURE IF EXISTS delete_household_member;
+DROP PROCEDURE IF EXISTS invite_user_to_household;
+DROP PROCEDURE IF EXISTS accept_household_invite;
