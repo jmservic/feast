@@ -62,7 +62,7 @@ END;
 $$ LANGUAGE plpgsql
 -- +goose StatementEnd
 
--- procedures
+-- procedures spent the day working on angular...
 -- +goose StatementBegin
 CREATE OR REPLACE PROCEDURE create_household (name TEXT, userId UUID, out household_id UUID) AS $$
 DECLARE
