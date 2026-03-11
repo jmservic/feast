@@ -103,7 +103,30 @@ $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE create_household_member (member_name TEXT, userId UUID, household_id UUID, out household_member_id UUID) AS $$
+CREATE OR REPLACE PROCEDURE user_create_household_member ( creatorId UUID, member_name TEXT,  userId UUID, household_id UUID, out household_member_id UUID ) AS $$
+DECLARE
+	user_household_member_info record;
+BEGIN
+	IF NOT can_create_member(user_id) THEN
+		RAISE EXCEPTION '% does not have sufficient permission to create a member in the household', user_id;
+	END IF;
+
+	SELECT role, household_id INTO user_household_member_info WHERE user_id = creatorId;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION '% user is not a part of a household', creatorId;
+	END IF;
+
+	IF user_household_member_info.household_id <> household_id THEN
+		RAISE EXCEPTION 'you cannot create a member in another household';
+	END IF;
+
+	CALL create_household_member(member_name, userId, household_id, household_member_id);
+END;
+$$ LANGUAGE plpgsql
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE create_household_member ( member_name TEXT, userId UUID, household_id UUID, out household_member_id UUID ) AS $$
 BEGIN
 	IF userId IS NOT NULL THEN
 		-- Is the user already in a household?
@@ -282,6 +305,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql
 -- +goose StatementEnd
+
+-- need update household member stored procedures
 
 -- initial data
 INSERT INTO household_roles (name) 
