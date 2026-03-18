@@ -2,6 +2,10 @@ DB_PROTOCOL := postgres
 DB_URL := postgres://postgres:postgres@localhost:5432/feast
 GOOSE_CMD := goose $(DB_PROTOCOL) $(DB_URL)
 SERVER_EXE := feast_server
+SRC_FOLDERS := cmd internal
+UNIT_TEST_ARGS := $(addprefix ./,\
+					    $(addsuffix /...,$(SRC_FOLDERS)))
+SRC_FILES := $(wildcard ./cmd/*/* ./internal/*/*)
 
 define get-server-pid
 	ps | awk '/$(SERVER_EXE)/ {print $$1}'
@@ -13,6 +17,7 @@ SERVER_PID := $(shell $(get-server-pid))
 
 test:
 	echo $(SERVER_PID) 
+	echo $(SRC_FILES)
 
 up:
 	cd ./sql/schema; \
@@ -39,9 +44,8 @@ stop:
 build:
 	go build -o $(SERVER_EXE) ./cmd/server
 
-#Fix this for brace expansion...
 unit:
-	go test -cover ./cmd/... ./internal/...
+	go test -cover $(UNIT_TEST_ARGS) 
 
 integration: start
 	while [ -z "$$($(get-server-pid))" ]; do \
