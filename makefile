@@ -4,7 +4,7 @@ GOOSE_CMD := goose $(DB_PROTOCOL) $(DB_URL)
 SERVER_EXE := feast_server
 
 define get-server-pid
-ps | awk '/$(SERVER_EXE)/ {print $$1}'
+	ps | awk '/$(SERVER_EXE)/ {print $$1}'
 endef
 
 SERVER_PID := $(shell $(get-server-pid))
