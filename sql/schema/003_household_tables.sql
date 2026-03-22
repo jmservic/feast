@@ -11,7 +11,7 @@ CREATE TABLE household_roles (
 	name TEXT NOT NULL
 );
 
-CREATE TABLE household_members (
+CREATE TABLE household_members ( -- add a unique constraint for household_id and an owner role? don't know if that is possible
 	id UUID PRIMARY KEY,
 	name TEXT,
 	created_at TIMESTAMP NOT NULL,
@@ -20,6 +20,8 @@ CREATE TABLE household_members (
 	household_id UUID NOT NULL REFERENCES households (id) ON DELETE CASCADE,
 	user_id UUID UNIQUE REFERENCES users (id)
 );
+
+CREATE INDEX ON household_members ( household_id );
 
 CREATE TABLE household_invites (
 	inviter_id UUID NOT NULL REFERENCES users (id),
@@ -51,7 +53,7 @@ BEGIN
 		RETURN user_role <= manager_row_id;
 	END IF;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -59,12 +61,12 @@ CREATE OR REPLACE FUNCTION can_delete_member ( userId UUID ) RETURNS BOOLEAN AS 
 BEGIN
 	RETURN can_create_member(userId);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- procedures spent the day working on angular...
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE create_household (name TEXT, userId UUID, out household_id UUID) AS $$
+CREATE OR REPLACE PROCEDURE create_household (name TEXT, userId UUID) AS $$
 DECLARE
 	member_name TEXT := (SELECT name FROM users WHERE id = userId); 
 BEGIN 
@@ -77,11 +79,10 @@ BEGIN
 		RAISE unique_violation USING DETAIL = 'User is already a part of a household.';
 	END IF;
 	
-	household_id := gen_random_uuid();
 	INSERT INTO households ( id, created_at, updated_at, name )
     VALUES
 	(
-		household_id,
+		gen_random_uuid(),
 		NOW(), 
 		NOW(),
 		name
@@ -102,6 +103,8 @@ END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
+-- Need a delete household lol..
+
 -- +goose StatementBegin
 CREATE OR REPLACE PROCEDURE user_create_household_member ( creatorId UUID, member_name TEXT,  userId UUID, household_id UUID, out household_member_id UUID ) AS $$
 DECLARE
@@ -111,7 +114,7 @@ BEGIN
 		RAISE EXCEPTION '% does not have sufficient permission to create a member in the household', user_id;
 	END IF;
 
-	SELECT role, household_id INTO user_household_member_info WHERE user_id = creatorId;
+	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = creatorId;
 	IF NOT FOUND THEN
 		RAISE EXCEPTION '% user is not a part of a household', creatorId;
 	END IF;
@@ -122,7 +125,7 @@ BEGIN
 
 	CALL create_household_member(member_name, userId, household_id, household_member_id);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -154,7 +157,7 @@ BEGIN
 	);
 
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -168,12 +171,12 @@ BEGIN
 		RAISE EXCEPTION '% does not have sufficient permission to delete a member from the household', user_id;
 	END IF;
 
-	SELECT role, household_id INTO user_household_member_info WHERE user_id = user_id;
+	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = user_id;
 	IF NOT FOUND THEN
 		RAISE EXCEPTION '% user is not a part of a household', user_id;
 	END IF;
 
-	SELECT role, household_id, user_id INTO household_member_info WHERE id = household_member_id;
+	SELECT role, household_id, user_id INTO household_member_info FROM household_members WHERE id = household_member_id;
 	IF NOT FOUND THEN 
 		RAISE EXCEPTION '% member does not exist', household_member_id;
 	END IF;
@@ -188,7 +191,7 @@ BEGIN
 
 	CALL delete_household_member(household_member_id);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -233,7 +236,7 @@ BEGIN
 	-- remove the household_member_id
 	DELETE FROM household_members WHERE id = household_member_id;
 END;
-$$ LANGUAGE plpgsql 
+$$ LANGUAGE plpgsql; 
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -277,7 +280,7 @@ BEGIN
 		NOW()
 	);
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
@@ -303,7 +306,7 @@ BEGIN
 
 	DELETE FROM household_invites WHERE invitee_id = invitee_id;
 END;
-$$ LANGUAGE plpgsql
+$$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- need update household member stored procedures

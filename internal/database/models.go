@@ -14,7 +14,16 @@ import (
 type Household struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
+	UpdatedAt time.Time
 	Name      string
+}
+
+type HouseholdInvite struct {
+	InviterID         uuid.UUID
+	InviteeID         uuid.UUID
+	HouseholdMemberID pgtype.UUID
+	HouseholdID       uuid.UUID
+	CreatedAt         time.Time
 }
 
 type HouseholdMember struct {
@@ -23,7 +32,7 @@ type HouseholdMember struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	Role        pgtype.Int4
-	HouseholdID pgtype.UUID
+	HouseholdID uuid.UUID
 	UserID      pgtype.UUID
 }
 
