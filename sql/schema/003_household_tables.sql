@@ -1,47 +1,48 @@
 -- +goose Up
 CREATE TABLE households (
-	id UUID PRIMARY KEY,
-	created_at TIMESTAMP NOT NULL, 
-	updated_at TIMESTAMP NOT NULL,
-	name TEXT NOT NULL
+	id uuid PRIMARY KEY,
+	created_at timestamp NOT NULL, 
+	updated_at timestamp NOT NULL,
+	name text NOT NULL
 );
 
 CREATE TABLE household_roles (
-	id SERIAL PRIMARY KEY,
-	name TEXT NOT NULL
+	id serial PRIMARY KEY,
+	name text NOT NULL
 );
 
-CREATE TABLE household_members ( -- add a unique constraint for household_id and an owner role? don't know if that is possible
-	id UUID PRIMARY KEY,
-	name TEXT,
-	created_at TIMESTAMP NOT NULL,
-	updated_at TIMESTAMP NOT NULL,
-	role INTEGER REFERENCES household_roles (id), 
-	household_id UUID NOT NULL REFERENCES households (id) ON DELETE CASCADE,
-	user_id UUID UNIQUE REFERENCES users (id)
+CREATE TABLE household_members ( 
+	id uuid PRIMARY KEY,
+	name text,
+	created_at timestamp NOT NULL,
+	updated_at timestamp NOT NULL,
+	role integer REFERENCES household_roles (id), 
+	household_id uuid NOT NULL REFERENCES households (id) ON DELETE CASCADE,
+	user_id uuid UNIQUE REFERENCES users (id)
 );
 
 CREATE INDEX ON household_members ( household_id );
+CREATE INDEX ON household_members ( household_id, role) WHERE role = 0;
 
 CREATE TABLE household_invites (
-	inviter_id UUID NOT NULL REFERENCES users (id),
-	invitee_id UUID NOT NULL REFERENCES users (id),
-	household_member_id UUID REFERENCES household_members (id),
-	household_id UUID NOT NULL REFERENCES households (id),
-	created_at TIMESTAMP NOT NULL,
+	inviter_id uuid NOT NULL REFERENCES users (id),
+	invitee_id uuid NOT NULL REFERENCES users (id),
+	household_member_id uuid REFERENCES household_members (id),
+	household_id uuid NOT NULL REFERENCES households (id),
+	created_at timestamp NOT NULL,
 	UNIQUE(invitee_id, household_id)
 );
 
 -- functions
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION can_create_member ( userId UUID ) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION can_create_member ( user_id UUID ) RETURNS boolean AS $$
 DECLARE 
 	user_role_id integer;
 	manager_row_id integer;
 	manager_name text := 'manager';
 
 BEGIN
-	SELECT role INTO user_role_id FROM  household_members WHERE user_id = userId;
+	SELECT role INTO user_role_id FROM  household_members WHERE user_id = user_id;
 	IF NOT FOUND THEN
 		RETURN false;
 	ELSE
@@ -57,23 +58,23 @@ $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION can_delete_member ( userId UUID ) RETURNS BOOLEAN AS $$
+CREATE OR REPLACE FUNCTION can_delete_member ( user_id UUID ) RETURNS boolean AS $$
 BEGIN
-	RETURN can_create_member(userId);
+	RETURN can_create_member(user_id);
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- procedures spent the day working on angular...
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE create_household (name TEXT, userId UUID) AS $$
+CREATE OR REPLACE PROCEDURE create_household ( name text, user_id uuid ) AS $$
 DECLARE
-	member_name TEXT := (SELECT name FROM users WHERE id = userId); 
+	member_name TEXT := (SELECT name FROM users WHERE id = user_id); 
 BEGIN 
 	-- Is the user already in a household?
 	SELECT household_id INTO household_id
 	FROM household_members 
-	WHERE user_id = userId;
+	WHERE user_id = user_id;
 
 	IF FOUND THEN 
 		RAISE unique_violation USING DETAIL = 'User is already a part of a household.';
@@ -97,16 +98,19 @@ BEGIN
 		NOW(),
 		1,
 		household_id,
-		userId
+		user_id
 	);
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- Need a delete household lol..
+-- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE delete_household ( )
+-- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE user_create_household_member ( creatorId UUID, member_name TEXT,  userId UUID, household_id UUID, out household_member_id UUID ) AS $$
+CREATE OR REPLACE PROCEDURE user_create_household_member ( creatorId uuid, member_name text,  user_id uuid, household_id uuid ) AS $$
 DECLARE
 	user_household_member_info record;
 BEGIN
@@ -123,37 +127,35 @@ BEGIN
 		RAISE EXCEPTION 'you cannot create a member in another household';
 	END IF;
 
-	CALL create_household_member(member_name, userId, household_id, household_member_id);
+	CALL create_household_member(member_name, user_id, household_id, household_member_id);
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE create_household_member ( member_name TEXT, userId UUID, household_id UUID, out household_member_id UUID ) AS $$
+CREATE OR REPLACE PROCEDURE create_household_member ( member_name text, user_id uuid, household_id uuid ) AS $$
 BEGIN
-	IF userId IS NOT NULL THEN
+	IF user_id IS NOT NULL THEN
 		-- Is the user already in a household?
 		SELECT household_id 
 		FROM household_members 
-		WHERE user_id = userId;
+		WHERE user_id = user_id;
 
 		IF FOUND THEN 
 			RAISE unique_violation USING DETAIL = 'User is already a part of a household.';
 		END IF;
 	END IF;
 
-	household_member_id := gen_random_uuid();
-
 	INSERT INTO household_members ( id, name, created_at, updated_at, role, household_id, user_id )
 	VALUES
 	(
-		household_member_id,
+		gen_random_uuid(),
 		member_name,
 		NOW(),
 		NOW(),
 		4,
 		household_id,
-		userId
+		user_id
 	);
 
 END;
@@ -220,6 +222,9 @@ BEGIN
 		RETURN;
 	END IF;
 
+	-- remove the household_member_id
+	DELETE FROM household_members WHERE id = household_member_id;
+
 	-- Check if the user is the head
 	IF member_info.role = 0 THEN
 		-- if the user is the head, find the next highest role
@@ -233,8 +238,6 @@ BEGIN
 		WHERE id = next_highest_member;
 	END IF;
 	
-	-- remove the household_member_id
-	DELETE FROM household_members WHERE id = household_member_id;
 END;
 $$ LANGUAGE plpgsql; 
 -- +goose StatementEnd
