@@ -11,16 +11,136 @@ import (
 	"github.com/google/uuid"
 )
 
+const acceptHouseholdInvite = `-- name: AcceptHouseholdInvite :exec
+CALL accept_household_invite($1, $2)
+`
+
+type AcceptHouseholdInviteParams struct {
+	InviteeID   uuid.UUID
+	HouseholdID uuid.UUID
+}
+
+func (q *Queries) AcceptHouseholdInvite(ctx context.Context, arg AcceptHouseholdInviteParams) error {
+	_, err := q.db.Exec(ctx, acceptHouseholdInvite, arg.InviteeID, arg.HouseholdID)
+	return err
+}
+
 const createHousehold = `-- name: CreateHousehold :exec
- CALL create_household( $1, $2 )
+ CALL create_household($1, $2)
 `
 
 type CreateHouseholdParams struct {
 	Name   string
-	Userid uuid.UUID
+	UserID uuid.UUID
 }
 
 func (q *Queries) CreateHousehold(ctx context.Context, arg CreateHouseholdParams) error {
-	_, err := q.db.Exec(ctx, createHousehold, arg.Name, arg.Userid)
+	_, err := q.db.Exec(ctx, createHousehold, arg.Name, arg.UserID)
+	return err
+}
+
+const createHouseholdMember = `-- name: CreateHouseholdMember :exec
+CALL user_create_household_member($1, $2, $3, $4)
+`
+
+type CreateHouseholdMemberParams struct {
+	CreatorID   uuid.UUID
+	MemberName  string
+	UserID      uuid.UUID
+	HouseholdID uuid.UUID
+}
+
+func (q *Queries) CreateHouseholdMember(ctx context.Context, arg CreateHouseholdMemberParams) error {
+	_, err := q.db.Exec(ctx, createHouseholdMember,
+		arg.CreatorID,
+		arg.MemberName,
+		arg.UserID,
+		arg.HouseholdID,
+	)
+	return err
+}
+
+const deleteHousehold = `-- name: DeleteHousehold :exec
+CALL user_delete_household($1, $2)
+`
+
+type DeleteHouseholdParams struct {
+	UserID      uuid.UUID
+	HouseholdID uuid.UUID
+}
+
+func (q *Queries) DeleteHousehold(ctx context.Context, arg DeleteHouseholdParams) error {
+	_, err := q.db.Exec(ctx, deleteHousehold, arg.UserID, arg.HouseholdID)
+	return err
+}
+
+const deleteHouseholdMember = `-- name: DeleteHouseholdMember :exec
+CALL user_delete_household_member($1, $2)
+`
+
+type DeleteHouseholdMemberParams struct {
+	UserID            uuid.UUID
+	HouseholdMemberID uuid.UUID
+}
+
+func (q *Queries) DeleteHouseholdMember(ctx context.Context, arg DeleteHouseholdMemberParams) error {
+	_, err := q.db.Exec(ctx, deleteHouseholdMember, arg.UserID, arg.HouseholdMemberID)
+	return err
+}
+
+const getHouseholdById = `-- name: GetHouseholdById :one
+SELECT id, created_at, updated_at, name FROM households
+WHERE id = $1
+`
+
+func (q *Queries) GetHouseholdById(ctx context.Context, id uuid.UUID) (Household, error) {
+	row := q.db.QueryRow(ctx, getHouseholdById, id)
+	var i Household
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+	)
+	return i, err
+}
+
+const getHouseholdByUserId = `-- name: GetHouseholdByUserId :one
+SELECT h.id, h.created_at, h.updated_at, h.name FROM households h
+INNER JOIN household_members m ON ( h.id = m.household_id )
+INNER JOIN users u ON ( m.user_id = u.id )
+WHERE u.id = $1
+`
+
+func (q *Queries) GetHouseholdByUserId(ctx context.Context, id uuid.UUID) (Household, error) {
+	row := q.db.QueryRow(ctx, getHouseholdByUserId, id)
+	var i Household
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Name,
+	)
+	return i, err
+}
+
+const inviteUserToHousehold = `-- name: InviteUserToHousehold :exec
+CALL invite_user_to_household($1, $2, $3, $4)
+`
+
+type InviteUserToHouseholdParams struct {
+	Inviter           uuid.UUID
+	Invitee           uuid.UUID
+	HouseholdID       uuid.UUID
+	HouseholdMemberID uuid.UUID
+}
+
+func (q *Queries) InviteUserToHousehold(ctx context.Context, arg InviteUserToHouseholdParams) error {
+	_, err := q.db.Exec(ctx, inviteUserToHousehold,
+		arg.Inviter,
+		arg.Invitee,
+		arg.HouseholdID,
+		arg.HouseholdMemberID,
+	)
 	return err
 }
