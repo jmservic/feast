@@ -6,7 +6,9 @@ import (
 
 const (
 	EmptyPasswordErrStr         string = "password field cannot be empty"
+	EmptyParameterErrStr        string = "a required parameter is empty"
 	HashCheckErrStr             string = "error comparing hashes"
+	HouseholdCreationErrStr     string = "error creating a new household"
 	InvalidCredentialsErrStr    string = "invalid credentials" // #nosec G101
 	JsonDecodeErrStr            string = "error occurred when decoding the json string"
 	JwtCreationErrStr           string = "error creating a JWT token"

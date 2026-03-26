@@ -137,8 +137,30 @@ END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE user_update_household ( user_id uuid, household_id uuid, new_name text ) AS $$
+DECLARE
+	user_household_member_info record;
+BEGIN
+	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = user_id;
+	IF NOT FOUND THEN
+		RAISE EXCEPTION '% user is not a part of a household', user_id;
+	END IF;
+
+	IF user_household_member_info.role <> 0 THEN
+		RAISE EXCEPTION 'You do not have the required permissions to update the household';
+	END IF;
+
+	IF user_household_member_info.household_id <> household_id THEN
+		RAISE EXCEPTION 'you cannot update a household you''re not apart of';
+	END IF;
+
+	UPDATE households SET name = new_name WHERE id = household_id;
+END;
+$$ LANGUAGE plpgsql;
+
 -- +goose StatementBegin 
--- Need to update to create an invite to the user.
+-- Need to check whether this is rolled back if the user is in another household.
 CREATE OR REPLACE PROCEDURE user_create_household_member ( creator_id uuid, member_name text,  user_id uuid, household_id uuid ) AS $$
 DECLARE
 	user_household_member_info record;
@@ -363,6 +385,7 @@ DROP FUNCTION IF EXISTS can_delete_member;
 DROP PROCEDURE IF EXISTS create_household;
 DROP PROCEDURE IF EXISTS delete_household;
 DROP PROCEDURE IF EXISTS user_delete_household;
+DROP PROCECURE IF EXISTS user_update_household;
 DROP PROCEDURE IF EXISTS create_household_member;
 DROP PROCEDURE IF EXISTS user_create_household_member; 
 DROP PROCEDURE IF EXISTS delete_household_member;

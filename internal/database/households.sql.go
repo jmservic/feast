@@ -11,22 +11,8 @@ import (
 	"github.com/google/uuid"
 )
 
-const acceptHouseholdInvite = `-- name: AcceptHouseholdInvite :exec
-CALL accept_household_invite($1, $2)
-`
-
-type AcceptHouseholdInviteParams struct {
-	InviteeID   uuid.UUID
-	HouseholdID uuid.UUID
-}
-
-func (q *Queries) AcceptHouseholdInvite(ctx context.Context, arg AcceptHouseholdInviteParams) error {
-	_, err := q.db.Exec(ctx, acceptHouseholdInvite, arg.InviteeID, arg.HouseholdID)
-	return err
-}
-
 const createHousehold = `-- name: CreateHousehold :exec
- CALL create_household($1, $2)
+CALL create_household($1, $2)
 `
 
 type CreateHouseholdParams struct {
@@ -36,27 +22,6 @@ type CreateHouseholdParams struct {
 
 func (q *Queries) CreateHousehold(ctx context.Context, arg CreateHouseholdParams) error {
 	_, err := q.db.Exec(ctx, createHousehold, arg.Name, arg.UserID)
-	return err
-}
-
-const createHouseholdMember = `-- name: CreateHouseholdMember :exec
-CALL user_create_household_member($1, $2, $3, $4)
-`
-
-type CreateHouseholdMemberParams struct {
-	CreatorID   uuid.UUID
-	MemberName  string
-	UserID      uuid.UUID
-	HouseholdID uuid.UUID
-}
-
-func (q *Queries) CreateHouseholdMember(ctx context.Context, arg CreateHouseholdMemberParams) error {
-	_, err := q.db.Exec(ctx, createHouseholdMember,
-		arg.CreatorID,
-		arg.MemberName,
-		arg.UserID,
-		arg.HouseholdID,
-	)
 	return err
 }
 
@@ -71,20 +36,6 @@ type DeleteHouseholdParams struct {
 
 func (q *Queries) DeleteHousehold(ctx context.Context, arg DeleteHouseholdParams) error {
 	_, err := q.db.Exec(ctx, deleteHousehold, arg.UserID, arg.HouseholdID)
-	return err
-}
-
-const deleteHouseholdMember = `-- name: DeleteHouseholdMember :exec
-CALL user_delete_household_member($1, $2)
-`
-
-type DeleteHouseholdMemberParams struct {
-	UserID            uuid.UUID
-	HouseholdMemberID uuid.UUID
-}
-
-func (q *Queries) DeleteHouseholdMember(ctx context.Context, arg DeleteHouseholdMemberParams) error {
-	_, err := q.db.Exec(ctx, deleteHouseholdMember, arg.UserID, arg.HouseholdMemberID)
 	return err
 }
 
@@ -124,23 +75,17 @@ func (q *Queries) GetHouseholdByUserId(ctx context.Context, id uuid.UUID) (House
 	return i, err
 }
 
-const inviteUserToHousehold = `-- name: InviteUserToHousehold :exec
-CALL invite_user_to_household($1, $2, $3, $4)
+const updateHousehold = `-- name: UpdateHousehold :exec
+CALL user_update_household($1, $2, $3)
 `
 
-type InviteUserToHouseholdParams struct {
-	Inviter           uuid.UUID
-	Invitee           uuid.UUID
-	HouseholdID       uuid.UUID
-	HouseholdMemberID uuid.UUID
+type UpdateHouseholdParams struct {
+	UserID      uuid.UUID
+	HouseholdID uuid.UUID
+	NewName     string
 }
 
-func (q *Queries) InviteUserToHousehold(ctx context.Context, arg InviteUserToHouseholdParams) error {
-	_, err := q.db.Exec(ctx, inviteUserToHousehold,
-		arg.Inviter,
-		arg.Invitee,
-		arg.HouseholdID,
-		arg.HouseholdMemberID,
-	)
+func (q *Queries) UpdateHousehold(ctx context.Context, arg UpdateHouseholdParams) error {
+	_, err := q.db.Exec(ctx, updateHousehold, arg.UserID, arg.HouseholdID, arg.NewName)
 	return err
 }
