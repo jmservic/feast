@@ -95,7 +95,30 @@ func (cfg apiConfig) handlerUpdateHousehold(w http.ResponseWriter, r *http.Reque
 }
 
 func (cfg apiConfig) handlerGetHousehold(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	household, err := cfg.db.Get
+	var household database.Household
+
+	householdId, err := uuid.Parse(r.PathValue("household_id"))
+	if err != nil {
+		household, err = cfg.db.GetHouseholdByUserId(r.Context(), userId)
+		if err != nil {
+			respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdRetrievalByUserErrStr, err)
+			return
+		}
+	} else {
+		household, err = cfg.db.GetHouseholdByUserId(r.Context(), householdId)
+		if err != nil {
+			respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdRetrievalByIdErrStr, err)
+			return
+		}
+	}
+
+	rtnVals := dto.HouseholdResources{
+		Id:        household.ID,
+		CreatedAt: household.CreatedAt,
+		UpdatedAt: household.UpdatedAt,
+		Name:      household.Name,
+	}
+	respondWithJSON(w, http.StatusOK, rtnVals)
 
 }
 
