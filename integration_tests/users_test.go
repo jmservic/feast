@@ -32,7 +32,7 @@ func TestCreateNewUser(t *testing.T) {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
-		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
 	}
 
 	sut := dto.UserCreateResponse{}

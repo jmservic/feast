@@ -9,6 +9,7 @@ const (
 	EmptyParameterErrStr           string = "a required parameter is empty"
 	HashCheckErrStr                string = "error comparing hashes"
 	HouseholdCreationErrStr        string = "error creating a new household"
+	HouseholdDeleteErrStr          string = "error deleting the household"
 	HouseholdRetrievalByUserErrStr string = "error retrieving household by user id"
 	HouseholdRetrievalByIdErrStr   string = "error retrieving household by id"
 	HouseholdUpdateErrStr          string = "error updating a household"

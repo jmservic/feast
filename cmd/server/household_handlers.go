@@ -123,5 +123,24 @@ func (cfg apiConfig) handlerGetHousehold(w http.ResponseWriter, r *http.Request,
 }
 
 func (cfg apiConfig) handlerDeleteHousehold(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	householdId, err := uuid.Parse(r.PathValue("household_id"))
+	if err != nil {
+		household, err := cfg.db.GetHouseholdByUserId(r.Context(), userId)
+		if err != nil {
+			respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdRetrievalByUserErrStr, err)
+			return
+		}
+		householdId = household.ID
+	}
 
+	err = cfg.db.DeleteHousehold(r.Context(), database.DeleteHouseholdParams{
+		UserID:      userId,
+		HouseholdID: householdId,
+	})
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdDeleteErrStr, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
