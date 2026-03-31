@@ -7,13 +7,18 @@ func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	err := cfg.db.Reset(req.Context())
+	err := cfg.db.ResetUsers(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to reset the database: ", err)
+		return
+	}
+	err = cfg.db.ResetHouseholds(req.Context())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to reset the database: ", err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write([]byte("All Users dropped."))
+	_, err = w.Write([]byte("All Users and Households dropped."))
 	if err != nil {
 
 	}

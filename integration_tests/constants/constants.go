@@ -1,7 +1,8 @@
 package constants
 
 const (
-	UsersPath   = "/api/users"
-	LoginPath   = "/api/login"
-	RefreshPath = "/api/refresh"
+	HouseholdsPath = "/api/households"
+	UsersPath      = "/api/users"
+	LoginPath      = "/api/login"
+	RefreshPath    = "/api/refresh"
 )
