@@ -18,7 +18,7 @@ CREATE TABLE household_members (
 	updated_at timestamp NOT NULL,
 	role integer REFERENCES household_roles (id), 
 	household_id uuid NOT NULL REFERENCES households (id) ON DELETE CASCADE,
-	user_id uuid UNIQUE REFERENCES users (id)
+	user_id uuid UNIQUE REFERENCES users (id) ON DELETE SET NULL -- what happens if we delete the owner of the household...
 );
 
 CREATE INDEX ON household_members ( household_id );
@@ -67,15 +67,15 @@ $$ LANGUAGE plpgsql;
 
 -- procedures spent the day working on angular...
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE create_household ( name text, user_id uuid ) AS $$
+CREATE OR REPLACE PROCEDURE create_household ( household_name text, v_user_id uuid ) AS $$
 DECLARE
-	member_name text := (SELECT name FROM users WHERE id = user_id); 
-	household_id uuid;
+	member_name text := (SELECT name FROM users WHERE id = v_user_id); 
+	v_household_id uuid;
 BEGIN 
 	-- Is the user already in a household?
-	SELECT household_id 
+	PERFORM household_id 
 	FROM household_members 
-	WHERE user_id = user_id;
+	WHERE user_id = v_user_id;
 
 	IF FOUND THEN 
 		RAISE unique_violation USING DETAIL = 'User is already a part of a household.';
@@ -87,9 +87,9 @@ BEGIN
 		gen_random_uuid(),
 		NOW(), 
 		NOW(),
-		name
+		household_name
 	)
-	RETURNING id INTO household_id;
+	RETURNING id INTO v_household_id;
 
 	INSERT INTO household_members ( id, name, created_at, updated_at, role, household_id, user_id )
 	VALUES
@@ -99,8 +99,8 @@ BEGIN
 		NOW(),
 		NOW(),
 		1,
-		household_id,
-		user_id
+		v_household_id,
+		v_user_id
 	);
 END;
 $$ LANGUAGE plpgsql;
@@ -158,6 +158,7 @@ BEGIN
 	UPDATE households SET name = new_name WHERE id = household_id;
 END;
 $$ LANGUAGE plpgsql;
+-- +goose StatementEnd
 
 -- +goose StatementBegin 
 -- Need to check whether this is rolled back if the user is in another household.
@@ -385,7 +386,7 @@ DROP FUNCTION IF EXISTS can_delete_member;
 DROP PROCEDURE IF EXISTS create_household;
 DROP PROCEDURE IF EXISTS delete_household;
 DROP PROCEDURE IF EXISTS user_delete_household;
-DROP PROCECURE IF EXISTS user_update_household;
+DROP PROCEDURE IF EXISTS user_update_household;
 DROP PROCEDURE IF EXISTS create_household_member;
 DROP PROCEDURE IF EXISTS user_create_household_member; 
 DROP PROCEDURE IF EXISTS delete_household_member;

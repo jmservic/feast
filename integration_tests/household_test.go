@@ -7,6 +7,7 @@ import (
 	"testing"
 )
 
+// Test for when we delete the user.... who is the owner of a household
 func TestCreateNewHousehold(t *testing.T) {
 	// arrange
 	helpers.LoadDotEnv()
@@ -28,7 +29,7 @@ func TestCreateNewHousehold(t *testing.T) {
 	helpers.DecodeJSONResponse(&userCreateResponse, res.Body, t)
 	res.Body.Close()
 
-	res = dto.LoginUser(t, feastUrl, name, password)
+	res = dto.LoginUser(t, feastUrl, email, password)
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("Failed to login as the test user - Status code: %d", res.StatusCode)
 	}
@@ -46,4 +47,9 @@ func TestCreateNewHousehold(t *testing.T) {
 		t.Fatalf("Expected status created, got :%d", res.StatusCode)
 	}
 
+	sut := dto.HouseholdCreateResponse{}
+	helpers.DecodeJSONResponse(&sut, res.Body, t)
+
+	dto.ValidateHouseholdCreateResponse(t, sut, householdName)
+	// add in check for a new household member after we get to those endpoints.
 }

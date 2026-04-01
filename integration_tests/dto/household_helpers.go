@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"github.com/google/uuid"
 	"github.com/jmservic/feast/integration_tests/constants"
 	"github.com/jmservic/feast/integration_tests/helpers"
 	"net/http"
@@ -26,4 +27,13 @@ func CreateHousehold(t *testing.T, feastUrl, token, name string) *http.Response 
 	}
 
 	return res
+}
+
+func ValidateHouseholdCreateResponse(t *testing.T, householdCreateResponse HouseholdCreateResponse, name string) {
+	if householdCreateResponse.Name != name {
+		t.Fatalf("Expected %s, but got %s for the name", name, householdCreateResponse.Name)
+	}
+	if householdCreateResponse.Id == uuid.Nil {
+		t.Fatal("Got a Nil UUID for the household id")
+	}
 }
