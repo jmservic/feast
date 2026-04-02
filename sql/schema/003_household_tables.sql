@@ -393,3 +393,4 @@ DROP PROCEDURE IF EXISTS delete_household_member;
 DROP PROCEDURE IF EXISTS user_delete_household_member;
 DROP PROCEDURE IF EXISTS invite_user_to_household;
 DROP PROCEDURE IF EXISTS accept_household_invite;
+-- Need a leave household 

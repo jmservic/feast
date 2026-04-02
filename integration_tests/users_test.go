@@ -12,12 +12,6 @@ import (
 	"testing"
 )
 
-type UserInfo struct {
-	name     string
-	email    string
-	password string
-}
-
 // TO-DO: Add failing test cases like a bad name, email, or password. Also different email casing
 func TestCreateNewUser(t *testing.T) {
 	helpers.LoadDotEnv()
@@ -309,6 +303,7 @@ func TestUpdateUser(t *testing.T) {
 
 }
 
+// Test for when we delete the user.... who is the owner of a household
 func TestDeleteUser(t *testing.T) {
 	helpers.LoadDotEnv()
 	feastUrl := helpers.GetFeastURL()
