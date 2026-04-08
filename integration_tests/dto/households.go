@@ -5,11 +5,11 @@ import (
 	"time"
 )
 
-type HouseholdCreatePayload struct {
+type HouseholdPayload struct {
 	Name string `json:"name"`
 }
 
-type HouseholdCreateResponse struct {
+type HouseholdResponse struct {
 	Id        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

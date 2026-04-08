@@ -124,7 +124,7 @@ BEGIN
 		RAISE EXCEPTION '% user is not a part of a household', user_id;
 	END IF;
 
-	IF user_household_member_info.role <> 0 THEN
+	IF user_household_member_info.role <> 1 THEN
 		RAISE EXCEPTION 'You do not have the required permissions to delete the household';
 	END IF;
 
@@ -138,24 +138,24 @@ $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE user_update_household ( user_id uuid, household_id uuid, new_name text ) AS $$
+CREATE OR REPLACE PROCEDURE user_update_household ( v_user_id uuid, v_household_id uuid, new_name text ) AS $$
 DECLARE
 	user_household_member_info record;
 BEGIN
-	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = user_id;
+	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = v_user_id;
 	IF NOT FOUND THEN
-		RAISE EXCEPTION '% user is not a part of a household', user_id;
+		RAISE EXCEPTION '% user is not a part of a household', v_user_id;
 	END IF;
 
-	IF user_household_member_info.role <> 0 THEN
-		RAISE EXCEPTION 'You do not have the required permissions to update the household';
+	IF user_household_member_info.role <> 1 THEN
+		RAISE EXCEPTION 'You do not have the required permissions to update the household: role value %', user_household_member_info.role;
 	END IF;
 
-	IF user_household_member_info.household_id <> household_id THEN
+	IF user_household_member_info.household_id <> v_household_id THEN
 		RAISE EXCEPTION 'you cannot update a household you''re not apart of';
 	END IF;
 
-	UPDATE households SET name = new_name WHERE id = household_id;
+	UPDATE households SET name = new_name WHERE id = v_household_id;
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
