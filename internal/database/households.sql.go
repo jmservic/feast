@@ -16,12 +16,12 @@ CALL create_household($1, $2)
 `
 
 type CreateHouseholdParams struct {
-	Name   string
-	UserID uuid.UUID
+	HouseholdName string
+	VUserID       uuid.UUID
 }
 
 func (q *Queries) CreateHousehold(ctx context.Context, arg CreateHouseholdParams) error {
-	_, err := q.db.Exec(ctx, createHousehold, arg.Name, arg.UserID)
+	_, err := q.db.Exec(ctx, createHousehold, arg.HouseholdName, arg.VUserID)
 	return err
 }
 
@@ -80,12 +80,12 @@ CALL user_update_household($1, $2, $3)
 `
 
 type UpdateHouseholdParams struct {
-	UserID      uuid.UUID
-	HouseholdID uuid.UUID
-	NewName     string
+	VUserID      uuid.UUID
+	VHouseholdID uuid.UUID
+	NewName      string
 }
 
 func (q *Queries) UpdateHousehold(ctx context.Context, arg UpdateHouseholdParams) error {
-	_, err := q.db.Exec(ctx, updateHousehold, arg.UserID, arg.HouseholdID, arg.NewName)
+	_, err := q.db.Exec(ctx, updateHousehold, arg.VUserID, arg.VHouseholdID, arg.NewName)
 	return err
 }

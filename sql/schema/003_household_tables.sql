@@ -144,7 +144,8 @@ DECLARE
 BEGIN
 	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = v_user_id;
 	IF NOT FOUND THEN
-		RAISE EXCEPTION '% user is not a part of a household', v_user_id;
+		RAISE EXCEPTION '% user is not a part of a household', v_user_id 
+			USING ERRCODE = '42501';
 	END IF;
 
 	IF user_household_member_info.role <> 1 THEN

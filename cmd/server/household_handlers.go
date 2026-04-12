@@ -7,6 +7,7 @@ import (
 	"github.com/jmservic/feast/internal/constants"
 	"github.com/jmservic/feast/internal/database"
 	"github.com/jmservic/feast/internal/dto"
+	"log"
 	"net/http"
 	// "time"
 )
@@ -26,8 +27,8 @@ func (cfg apiConfig) handlerCreateHousehold(w http.ResponseWriter, r *http.Reque
 	}
 
 	err := cfg.db.CreateHousehold(r.Context(), database.CreateHouseholdParams{
-		Name:   params.Name,
-		UserID: userId,
+		HouseholdName: params.Name,
+		VUserID:       userId,
 	})
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdCreationErrStr, err)
@@ -74,9 +75,9 @@ func (cfg apiConfig) handlerUpdateHousehold(w http.ResponseWriter, r *http.Reque
 	}
 
 	err = cfg.db.UpdateHousehold(r.Context(), database.UpdateHouseholdParams{
-		UserID:      userId,
-		HouseholdID: householdId,
-		NewName:     params.Name,
+		VUserID:      userId,
+		VHouseholdID: householdId,
+		NewName:      params.Name,
 	})
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdUpdateErrStr, err)
@@ -99,15 +100,16 @@ func (cfg apiConfig) handlerGetHousehold(w http.ResponseWriter, r *http.Request,
 
 	householdId, err := uuid.Parse(r.PathValue("household_id"))
 	if err != nil {
+		log.Println(err)
 		household, err = cfg.db.GetHouseholdByUserId(r.Context(), userId)
 		if err != nil {
 			respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdRetrievalByUserErrStr, err)
 			return
 		}
 	} else {
-		household, err = cfg.db.GetHouseholdByUserId(r.Context(), householdId)
+		household, err = cfg.db.GetHouseholdById(r.Context(), householdId)
 		if err != nil {
-			respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdRetrievalByIdErrStr, err)
+			respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdRetrievalByIdErrStr+" "+householdId.String(), err)
 			return
 		}
 	}

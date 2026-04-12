@@ -23,6 +23,9 @@ func mapDbErrorToHttpStatusCode(err error) int {
 		if pgErr.Code == "23505" || pgErr.Code == "23503" {
 			code = http.StatusBadRequest
 		}
+		if pgErr.Code == "42501" {
+			code = http.StatusForbidden
+		}
 	}
 
 	return code

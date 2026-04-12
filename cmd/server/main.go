@@ -91,6 +91,12 @@ func main() {
 		w.Write([]byte("Hello World! because of course..."))
 	}))*/
 
+	//Health
+	handler.HandleFunc("GET /", func(w http.ResponseWriter, res *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("I'm healthy. Doing just fine"))
+	})
+
 	server := http.Server{
 		Addr:              ":" + port,
 		Handler:           handler,

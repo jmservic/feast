@@ -130,15 +130,16 @@ func TestUpdateHousehold(t *testing.T) {
 			} else {
 				//Check that the name stayed the same
 				getRes := dto.GetHousehold(t, feastUrl, testCase.householdInfo.Id.String(), testCase.token)
+				defer getRes.Body.Close()
 				if getRes.StatusCode != http.StatusOK {
 					t.Fatalf("Expected Get Household to return %d code, received %d", http.StatusOK, getRes.StatusCode)
 				}
 
 				var householdInfo dto.HouseholdResponse
-				helpers.DecodeJSONResponse(&householdInfo, res.Body, t)
+				helpers.DecodeJSONResponse(&householdInfo, getRes.Body, t)
 
 				if householdInfo.Name != testCase.householdInfo.Name {
-					t.Fatalf("Expected the household name to remain the same. It was changed from \"%s\" to \"%s\"", householdInfo.Name, testCase.householdInfo.Name)
+					t.Fatalf("Expected the household name to remain the same. It was changed from \"%s\" to \"%s\"", testCase.householdInfo.Name, householdInfo.Name)
 				}
 			}
 		})
