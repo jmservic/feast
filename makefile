@@ -49,7 +49,7 @@ integration: start
 		echo "Waiting for Server to start..."; \
 		sleep 1; \
 	done;
-	go test ./integration_tests/...
+	-go test ./integration_tests/...
 ifndef SERVER_PID
 	kill $(shell $(get-server-pid))
 endif

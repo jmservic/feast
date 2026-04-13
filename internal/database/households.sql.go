@@ -30,12 +30,12 @@ CALL user_delete_household($1, $2)
 `
 
 type DeleteHouseholdParams struct {
-	UserID      uuid.UUID
-	HouseholdID uuid.UUID
+	VUserID      uuid.UUID
+	VHouseholdID uuid.UUID
 }
 
 func (q *Queries) DeleteHousehold(ctx context.Context, arg DeleteHouseholdParams) error {
-	_, err := q.db.Exec(ctx, deleteHousehold, arg.UserID, arg.HouseholdID)
+	_, err := q.db.Exec(ctx, deleteHousehold, arg.VUserID, arg.VHouseholdID)
 	return err
 }
 

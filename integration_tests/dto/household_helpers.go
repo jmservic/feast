@@ -72,3 +72,18 @@ func GetHousehold(t *testing.T, feastUrl, householdId, token string) *http.Respo
 
 	return res
 }
+
+func DeleteHousehold(t *testing.T, feastUrl, householdId, token string) *http.Response {
+	req, err := http.NewRequest(http.MethodDelete, feastUrl+constants.HouseholdsPath+"/"+householdId, nil)
+	if err != nil {
+		t.Fatalf("Error occured when creating the delete request: %v", err)
+	}
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}

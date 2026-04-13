@@ -107,32 +107,35 @@ $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE delete_household ( household_id uuid ) AS $$
+CREATE OR REPLACE PROCEDURE delete_household ( v_household_id uuid ) AS $$
 BEGIN
-	DELETE FROM households WHERE id = household_id;
+	DELETE FROM households WHERE id = v_household_id;
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE user_delete_household ( user_id uuid, household_id uuid ) AS $$
+CREATE OR REPLACE PROCEDURE user_delete_household ( v_user_id uuid, v_household_id uuid ) AS $$
 DECLARE
 	user_household_member_info record;
 BEGIN
-	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = user_id;
+	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = v_user_id;
 	IF NOT FOUND THEN
-		RAISE EXCEPTION '% user is not a part of a household', user_id;
+		RAISE EXCEPTION '% user is not a part of a household', v_user_id
+			USING ERRCODE = '42501';
 	END IF;
 
 	IF user_household_member_info.role <> 1 THEN
-		RAISE EXCEPTION 'You do not have the required permissions to delete the household';
+		RAISE EXCEPTION 'You do not have the required permissions to delete the household'
+			USING ERRCODE = '42501';
 	END IF;
 
-	IF user_household_member_info.household_id <> household_id THEN
-		RAISE EXCEPTION 'you cannot delete a household you''re not apart of';
+	IF user_household_member_info.household_id <> v_household_id THEN
+		RAISE EXCEPTION 'you cannot delete a household you''re not apart of'
+			USING ERRCODE = '42501';
 	END IF;
 
-	CALL delete_household(household_id);
+	CALL delete_household(v_household_id);
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
@@ -149,11 +152,13 @@ BEGIN
 	END IF;
 
 	IF user_household_member_info.role <> 1 THEN
-		RAISE EXCEPTION 'You do not have the required permissions to update the household: role value %', user_household_member_info.role;
+		RAISE EXCEPTION 'You do not have the required permissions to update the household: role value %', user_household_member_info.role
+			USING ERRCODE = '42501';
 	END IF;
 
 	IF user_household_member_info.household_id <> v_household_id THEN
-		RAISE EXCEPTION 'you cannot update a household you''re not apart of';
+		RAISE EXCEPTION 'you cannot update a household you''re not apart of'
+			USING ERRCODE = '42501';
 	END IF;
 
 	UPDATE households SET name = new_name WHERE id = v_household_id;

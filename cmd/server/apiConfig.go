@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmservic/feast/internal/auth"
 	"github.com/jmservic/feast/internal/constants"
@@ -19,12 +20,17 @@ type apiConfig struct {
 func mapDbErrorToHttpStatusCode(err error) int {
 	pgErr := &pgconn.PgError{}
 	code := http.StatusInternalServerError
+
 	if errors.As(err, &pgErr) {
 		if pgErr.Code == "23505" || pgErr.Code == "23503" {
 			code = http.StatusBadRequest
 		}
 		if pgErr.Code == "42501" {
 			code = http.StatusForbidden
+		}
+	} else {
+		if err == pgx.ErrNoRows {
+			code = http.StatusNotFound
 		}
 	}
 

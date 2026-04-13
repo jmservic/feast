@@ -136,8 +136,8 @@ func (cfg apiConfig) handlerDeleteHousehold(w http.ResponseWriter, r *http.Reque
 	}
 
 	err = cfg.db.DeleteHousehold(r.Context(), database.DeleteHouseholdParams{
-		UserID:      userId,
-		HouseholdID: householdId,
+		VUserID:      userId,
+		VHouseholdID: householdId,
 	})
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdDeleteErrStr, err)
