@@ -28,7 +28,7 @@ func (cfg apiConfig) handlerCreateHousehold(w http.ResponseWriter, r *http.Reque
 
 	err := cfg.db.CreateHousehold(r.Context(), database.CreateHouseholdParams{
 		HouseholdName: params.Name,
-		VUserID:       userId,
+		UserID:        userId,
 	})
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdCreationErrStr, err)
@@ -75,9 +75,9 @@ func (cfg apiConfig) handlerUpdateHousehold(w http.ResponseWriter, r *http.Reque
 	}
 
 	err = cfg.db.UpdateHousehold(r.Context(), database.UpdateHouseholdParams{
-		VUserID:      userId,
-		VHouseholdID: householdId,
-		NewName:      params.Name,
+		UserID:      userId,
+		HouseholdID: householdId,
+		NewName:     params.Name,
 	})
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdUpdateErrStr, err)
@@ -85,6 +85,10 @@ func (cfg apiConfig) handlerUpdateHousehold(w http.ResponseWriter, r *http.Reque
 	}
 
 	updatedHousehold, err := cfg.db.GetHouseholdById(r.Context(), householdId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdRetrievalByIdErrStr, err)
+		return
+	}
 
 	rtnVals := dto.HouseholdResources{
 		Id:        updatedHousehold.ID,
@@ -136,8 +140,8 @@ func (cfg apiConfig) handlerDeleteHousehold(w http.ResponseWriter, r *http.Reque
 	}
 
 	err = cfg.db.DeleteHousehold(r.Context(), database.DeleteHouseholdParams{
-		VUserID:      userId,
-		VHouseholdID: householdId,
+		UserID:      userId,
+		HouseholdID: householdId,
 	})
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdDeleteErrStr, err)

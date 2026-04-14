@@ -94,7 +94,10 @@ func main() {
 	//Health
 	handler.HandleFunc("GET /", func(w http.ResponseWriter, res *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("I'm healthy. Doing just fine"))
+		_, err := w.Write([]byte("I'm healthy. Doing just fine"))
+		if err != nil {
+			log.Printf("Health Check error: %v", err)
+		}
 	})
 
 	server := http.Server{

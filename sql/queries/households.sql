@@ -1,8 +1,8 @@
 -- name: CreateHousehold :exec
-CALL create_household($1, $2);
+CALL create_household($1, @user_id);
 
 -- name: DeleteHousehold :exec
-CALL user_delete_household($1, $2);
+CALL user_delete_household(@user_id, @household_id);
 
 -- name: GetHouseholdById :one
 SELECT * FROM households
@@ -15,4 +15,5 @@ INNER JOIN users u ON ( m.user_id = u.id )
 WHERE u.id = $1;
 
 -- name: UpdateHousehold :exec
-CALL user_update_household($1, $2, $3);
+--CALL user_update_household($1, $2, $3);
+CALL user_update_household(@user_id::uuid, @household_id::uuid, @new_name::text);

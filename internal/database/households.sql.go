@@ -17,11 +17,11 @@ CALL create_household($1, $2)
 
 type CreateHouseholdParams struct {
 	HouseholdName string
-	VUserID       uuid.UUID
+	UserID        uuid.UUID
 }
 
 func (q *Queries) CreateHousehold(ctx context.Context, arg CreateHouseholdParams) error {
-	_, err := q.db.Exec(ctx, createHousehold, arg.HouseholdName, arg.VUserID)
+	_, err := q.db.Exec(ctx, createHousehold, arg.HouseholdName, arg.UserID)
 	return err
 }
 
@@ -30,12 +30,12 @@ CALL user_delete_household($1, $2)
 `
 
 type DeleteHouseholdParams struct {
-	VUserID      uuid.UUID
-	VHouseholdID uuid.UUID
+	UserID      uuid.UUID
+	HouseholdID uuid.UUID
 }
 
 func (q *Queries) DeleteHousehold(ctx context.Context, arg DeleteHouseholdParams) error {
-	_, err := q.db.Exec(ctx, deleteHousehold, arg.VUserID, arg.VHouseholdID)
+	_, err := q.db.Exec(ctx, deleteHousehold, arg.UserID, arg.HouseholdID)
 	return err
 }
 
@@ -76,16 +76,17 @@ func (q *Queries) GetHouseholdByUserId(ctx context.Context, id uuid.UUID) (House
 }
 
 const updateHousehold = `-- name: UpdateHousehold :exec
-CALL user_update_household($1, $2, $3)
+CALL user_update_household($1::uuid, $2::uuid, $3::text)
 `
 
 type UpdateHouseholdParams struct {
-	VUserID      uuid.UUID
-	VHouseholdID uuid.UUID
-	NewName      string
+	UserID      uuid.UUID
+	HouseholdID uuid.UUID
+	NewName     string
 }
 
+// CALL user_update_household($1, $2, $3);
 func (q *Queries) UpdateHousehold(ctx context.Context, arg UpdateHouseholdParams) error {
-	_, err := q.db.Exec(ctx, updateHousehold, arg.VUserID, arg.VHouseholdID, arg.NewName)
+	_, err := q.db.Exec(ctx, updateHousehold, arg.UserID, arg.HouseholdID, arg.NewName)
 	return err
 }
