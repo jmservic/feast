@@ -79,7 +79,7 @@ func main() {
 	// Household Members
 	//Might not need this one
 	handler.Handle("GET /api/households/{household_id}/members", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMembers))
-	handler.Handle("POST /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerCreateHouseholdMember))
+	handler.Handle("POST /api/households/{household_id}/members", cfg.middlewareAuthentication(cfg.handlerCreateHouseholdMember))
 	handler.Handle("GET /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMember))
 	handler.Handle("PUT /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerUpdateHouseholdMember))
 	handler.Handle("DELETE /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerDeleteHouseholdMember))

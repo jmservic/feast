@@ -37,6 +37,8 @@ func TestCreateNewHousehold(t *testing.T) {
 	// add in check for a new household member after we get to those endpoints.
 }
 
+//Add tests for the owner and a random member trying to create a new household (should fail)
+
 func TestGetHousehold(t *testing.T) {
 	helpers.LoadDotEnv()
 

@@ -10,10 +10,12 @@ const (
 	HashCheckErrStr                string = "error comparing hashes"
 	HouseholdCreationErrStr        string = "error creating a new household"
 	HouseholdDeleteErrStr          string = "error deleting the household"
+	HouseholdMemberCreateErrStr    string = "error creating a new household member"
 	HouseholdRetrievalByUserErrStr string = "error retrieving household by user id"
 	HouseholdRetrievalByIdErrStr   string = "error retrieving household by id"
 	HouseholdUpdateErrStr          string = "error updating a household"
 	InvalidCredentialsErrStr       string = "invalid credentials" // #nosec G101
+	InvalidUUIDErrStr              string = "error parsing uuid string"
 	JsonDecodeErrStr               string = "error occurred when decoding the json string"
 	JwtCreationErrStr              string = "error creating a JWT token"
 	JwtRetrievalErrStr             string = "error getting JWT"
