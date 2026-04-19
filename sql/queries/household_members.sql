@@ -10,3 +10,7 @@ CALL invite_user_to_household($1, $2, $3, $4);
 -- name: AcceptHouseholdInvite :exec
 CALL accept_household_invite($1, $2);
 
+-- name: GetHouseholdMember :one
+SELECT * FROM household_members
+WHERE id = $1;
+

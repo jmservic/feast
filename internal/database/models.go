@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Household struct {
@@ -21,23 +20,23 @@ type Household struct {
 type HouseholdInvite struct {
 	InviterID         uuid.UUID
 	InviteeID         uuid.UUID
-	HouseholdMemberID pgtype.UUID
+	HouseholdMemberID uuid.UUID
 	HouseholdID       uuid.UUID
 	CreatedAt         time.Time
 }
 
 type HouseholdMember struct {
 	ID          uuid.UUID
-	Name        pgtype.Text
+	Name        string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	Role        pgtype.Int4
+	Role        int
 	HouseholdID uuid.UUID
-	UserID      pgtype.UUID
+	UserID      uuid.UUID
 }
 
 type HouseholdRole struct {
-	ID   int32
+	ID   int
 	Name string
 }
 
@@ -47,7 +46,7 @@ type RefreshToken struct {
 	UpdatedAt time.Time
 	UserID    uuid.UUID
 	ExpiresAt time.Time
-	RevokedAt pgtype.Timestamp
+	RevokedAt time.Time
 }
 
 type User struct {

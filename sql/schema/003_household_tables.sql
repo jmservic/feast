@@ -13,10 +13,10 @@ CREATE TABLE household_roles (
 
 CREATE TABLE household_members ( 
 	id uuid PRIMARY KEY,
-	name text,
+	name text NOT NULL,
 	created_at timestamp NOT NULL,
 	updated_at timestamp NOT NULL,
-	role integer REFERENCES household_roles (id), 
+	role integer NOT NULL REFERENCES household_roles (id), 
 	household_id uuid NOT NULL REFERENCES households (id) ON DELETE CASCADE,
 	user_id uuid UNIQUE REFERENCES users (id) ON DELETE SET NULL -- what happens if we delete the owner of the household...
 );

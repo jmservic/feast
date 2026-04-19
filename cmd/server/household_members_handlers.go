@@ -6,7 +6,7 @@ import (
 	//	"github.com/jmservic/feast/internal/auth"
 	"github.com/jmservic/feast/internal/constants"
 	"github.com/jmservic/feast/internal/database"
-	//	"github.com/jmservic/feast/internal/dto"
+	"github.com/jmservic/feast/internal/dto"
 	"net/http"
 	// "time"
 )
@@ -95,19 +95,25 @@ func (cfg apiConfig) handlerUpdateHouseholdMember(w http.ResponseWriter, r *http
 }
 
 func (cfg apiConfig) handlerGetHouseholdMember(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	householdId, err := uuid.Parse(r.PathValue("household_id"))
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
-		return
-	}
-
 	memberId, err := uuid.Parse(r.PathValue("member_id"))
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
 		return
 	}
 
-	err, memberInfo := cfg.db.GetHouseholdMember(r.Context())
+	memberInfo, err := cfg.db.GetHouseholdMember(r.Context(), memberId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdMemberRetrievalByIdErrStr, err)
+	}
+	respondWithJSON(w, http.StatusOK, dto.HouseholdMemberResources{
+		Id:          memberInfo.ID,
+		Name:        memberInfo.Name,
+		CreatedAt:   memberInfo.CreatedAt,
+		UpdatedAt:   memberInfo.UpdatedAt,
+		Role:        memberInfo.Role,
+		HouseholdId: memberInfo.HouseholdID,
+		UserId:      memberInfo.UserID,
+	})
 }
 
 func (cfg apiConfig) handlerGetHouseholdMembers(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {

@@ -60,6 +60,26 @@ func (q *Queries) DeleteHouseholdMember(ctx context.Context, arg DeleteHousehold
 	return err
 }
 
+const getHouseholdMember = `-- name: GetHouseholdMember :one
+SELECT id, name, created_at, updated_at, role, household_id, user_id FROM household_members
+WHERE id = $1
+`
+
+func (q *Queries) GetHouseholdMember(ctx context.Context, id uuid.UUID) (HouseholdMember, error) {
+	row := q.db.QueryRow(ctx, getHouseholdMember, id)
+	var i HouseholdMember
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Role,
+		&i.HouseholdID,
+		&i.UserID,
+	)
+	return i, err
+}
+
 const inviteUserToHousehold = `-- name: InviteUserToHousehold :exec
 CALL invite_user_to_household($1, $2, $3, $4)
 `
