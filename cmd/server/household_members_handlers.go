@@ -50,12 +50,6 @@ func (cfg apiConfig) handlerCreateHouseholdMember(w http.ResponseWriter, r *http
 }
 
 func (cfg apiConfig) handlerUpdateHouseholdMember(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	householdId, err := uuid.Parse(r.PathValue("household_id"))
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
-		return
-	}
-
 	memberId, err := uuid.Parse(r.PathValue("member_id"))
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
@@ -81,9 +75,11 @@ func (cfg apiConfig) handlerUpdateHouseholdMember(w http.ResponseWriter, r *http
 	}
 
 	err = cfg.db.UpdateHouseholdMember(r.Context(), database.UpdateHouseholdMemberParams{
-		Name:   params.Name,
-		UserId: params.UserId,
-		Role:   params.Role,
+		UpdaterID:         userId,
+		NewName:           params.Name,
+		NewRole:           params.Role,
+		NewUserID:         params.UserId,
+		HouseholdMemberID: memberId,
 	})
 
 	if err != nil {

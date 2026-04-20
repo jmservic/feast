@@ -225,6 +225,85 @@ $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE user_update_household_member ( updater_id uuid, new_member_name text, new_role integer, v_user_id uuid, household_member_id uuid ) AS $$
+DECLARE
+	updater_household_member_info record;
+	household_member_info record;
+BEGIN
+	SELECT id, role, household_id, user_id INTO updater_household_member_info WHERE user_id = updater_id;
+	IF NOT FOUND THEN
+		RAISE insufficient_privilege USING DETAIL = '% user is not a part of a household', v_user_id;
+	END IF;
+
+	SELECT id, role, household_id, user_id INTO household_member_info WHERE id = household_member_id;
+	IF NOT FOUND THEN
+		RAISE no_data_found USING DETAIL = 'Cannot find a household member with an id of %', household_member_id;
+	END IF;
+
+
+	IF updater_household_member_info.household_id <> household_member_info.household_id THEN
+		RAISE insufficient_privilege USING DETAIL = 'you cannot update a member in another household';
+	END IF;
+
+	IF updater_household_member_info.role < household_member_info.role THEN
+		RAISE insufficient_privilege USING DETAIL = 'you cannot update a member who''s with a higher role';
+	END IF;
+
+	-- set new_member_name and new_role based on whether they are null
+	member_name := COALESCE(member_name, household_member_info.name);
+	new_role := COALESCE(new_role, hoseuhold_member_info.role);
+
+	IF updated_household_member_info.role <= new_role THEN -- add in another condition to allow the household owner to give the household to someone else?
+		RAISE insufficient_privilege USING DETAIL = 'you cannot update a member to a role equal or higher than your own.';
+	END IF;
+
+	IF updater_household_member_info.role == household_member_info.role AND updater_household_member_info.id <> household_member_info.id THEN
+		RAISE insufficient_privilege USING DETAIL = 'you cannot update a member who''s role is equal to your own.';
+	END IF;
+
+
+	IF v_user_id IS NOT NULL THEN
+		IF updater_id == household_member_info.user_id THEN
+			RAISE insufficient_privilege USING DETAIL = 'you cannot invite another user in place of yourself';
+		END IF;
+		
+		IF NOT can_create_member(updater_id) THEN
+			RAISE insufficient_privilege USING DETAIL = 'you do not have permission to invite users to the household.';
+		END IF;
+
+		CALL invite_user_to_household( updater_id, v_user_id, household_member_info.household_id, household_member_id );
+		CALL update_household_member ( new_member_name, new_role, NULL, household_member_id);
+	ELSE 
+		CALL update_household_member ( new_member_name, new_role, household_member_info.user_id, household_member_id );
+	END IF;
+
+	-- Would want only the manager and household owner to be able to assign a new user_id to a household member, and can only assign to a member with a lower role.
+	-- You're able to update your own member_name 
+END;
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE update_household_member ( member_name text, new_role integer, v_user_id uuid, household_member_id uuid ) AS $$
+DECLARE
+	household_member_info record;
+BEGIN
+
+	SELECT name, role, user_id INTO STRICT household_member_info WHERE id = household_member_id;
+
+	IF member_name <> household_member_info.name OR new_role <> household_member_info.role OR v_user_id <> household_member_info.user_id THEN
+		UPDATE household_members
+		SET name = member_name,
+		role = new_role,
+		user_id = v_user_id,
+		updated_at = GETDATE()
+		WHERE id = household_member_id;
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
 CREATE OR REPLACE PROCEDURE user_delete_household_member ( user_id uuid, household_member_id uuid ) AS $$
 DECLARE
 	user_household_member_info record;
@@ -395,6 +474,8 @@ DROP PROCEDURE IF EXISTS user_delete_household;
 DROP PROCEDURE IF EXISTS user_update_household;
 DROP PROCEDURE IF EXISTS create_household_member;
 DROP PROCEDURE IF EXISTS user_create_household_member; 
+DROP PROCEDURE IF EXISTS update_household_member;
+DROP PROCEDURE IF EXISTS user_update_household_member; 
 DROP PROCEDURE IF EXISTS delete_household_member;
 DROP PROCEDURE IF EXISTS user_delete_household_member;
 DROP PROCEDURE IF EXISTS invite_user_to_household;

@@ -12,6 +12,7 @@ const (
 	HouseholdDeleteErrStr              string = "error deleting the household"
 	HouseholdMemberCreateErrStr        string = "error creating a new household member"
 	HouseholdMemberRetrievalByIdErrStr string = "error retrieving the household member by id"
+	HouseholdMemberUpdateErrStr        string = "error updating the household member"
 	HouseholdRetrievalByUserErrStr     string = "error retrieving the household by user id"
 	HouseholdRetrievalByIdErrStr       string = "error retrieving the household by id"
 	HouseholdUpdateErrStr              string = "error updating a household"

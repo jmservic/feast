@@ -100,3 +100,26 @@ func (q *Queries) InviteUserToHousehold(ctx context.Context, arg InviteUserToHou
 	)
 	return err
 }
+
+const updateHouseholdMember = `-- name: UpdateHouseholdMember :exec
+CALL user_update_household_member($1, $2, $3, $4, $5)
+`
+
+type UpdateHouseholdMemberParams struct {
+	UpdaterID         uuid.UUID
+	NewName           string
+	NewRole           int
+	NewUserID         uuid.UUID
+	HouseholdMemberID uuid.UUID
+}
+
+func (q *Queries) UpdateHouseholdMember(ctx context.Context, arg UpdateHouseholdMemberParams) error {
+	_, err := q.db.Exec(ctx, updateHouseholdMember,
+		arg.UpdaterID,
+		arg.NewName,
+		arg.NewRole,
+		arg.NewUserID,
+		arg.HouseholdMemberID,
+	)
+	return err
+}
