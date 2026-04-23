@@ -100,6 +100,7 @@ func (cfg apiConfig) handlerGetHouseholdMember(w http.ResponseWriter, r *http.Re
 	memberInfo, err := cfg.db.GetHouseholdMember(r.Context(), memberId)
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdMemberRetrievalByIdErrStr, err)
+		return
 	}
 	respondWithJSON(w, http.StatusOK, dto.HouseholdMemberResources{
 		Id:          memberInfo.ID,
@@ -113,9 +114,50 @@ func (cfg apiConfig) handlerGetHouseholdMember(w http.ResponseWriter, r *http.Re
 }
 
 func (cfg apiConfig) handlerGetHouseholdMembers(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	householdId, err := uuid.Parse(r.PathValue("household_id"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
+		return
+	}
 
+	householdMembers, err := cfg.db.GetHouseholdMembers(r.Context(), householdId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdMembersRetrievalByHouseholdIdErrStr, err)
+		return
+	}
+
+	var rtnMembers []dto.HouseholdMemberResources
+	for _, memberInfo := range householdMembers {
+		rtnMembers = append(rtnMembers, dto.HouseholdMemberResources{
+			Id:          memberInfo.ID,
+			Name:        memberInfo.Name,
+			CreatedAt:   memberInfo.CreatedAt,
+			UpdatedAt:   memberInfo.UpdatedAt,
+			Role:        memberInfo.Role,
+			HouseholdId: memberInfo.HouseholdID,
+			UserId:      memberInfo.UserID,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, rtnMembers)
 }
 
 func (cfg apiConfig) handlerDeleteHouseholdMember(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	memberId, err := uuid.Parse(r.PathValue("member_id"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
+		return
+	}
 
+	err = cfg.db.DeleteHouseholdMember(r.Context(), database.DeleteHouseholdMemberParams{
+		UserID:            userId,
+		HouseholdMemberID: memberId,
+	})
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdMemberDeleteErrStr, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

@@ -17,3 +17,7 @@ WHERE id = $1;
 -- name: UpdateHouseholdMember :exec
 CALL user_update_household_member(@updater_id, @new_name, @new_role, @new_user_id, @household_member_id);
 
+-- name: GetHouseholdMembers :many
+SELECT * FROM household_members
+WHERE household_id = $1;
+

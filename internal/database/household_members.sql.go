@@ -80,6 +80,39 @@ func (q *Queries) GetHouseholdMember(ctx context.Context, id uuid.UUID) (Househo
 	return i, err
 }
 
+const getHouseholdMembers = `-- name: GetHouseholdMembers :many
+SELECT id, name, created_at, updated_at, role, household_id, user_id FROM household_members
+WHERE household_id = $1
+`
+
+func (q *Queries) GetHouseholdMembers(ctx context.Context, householdID uuid.UUID) ([]HouseholdMember, error) {
+	rows, err := q.db.Query(ctx, getHouseholdMembers, householdID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []HouseholdMember
+	for rows.Next() {
+		var i HouseholdMember
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Role,
+			&i.HouseholdID,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const inviteUserToHousehold = `-- name: InviteUserToHousehold :exec
 CALL invite_user_to_household($1, $2, $3, $4)
 `

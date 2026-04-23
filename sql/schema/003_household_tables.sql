@@ -35,14 +35,14 @@ CREATE TABLE household_invites (
 
 -- functions
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION can_create_member ( user_id uuid ) RETURNS boolean AS $$
+CREATE OR REPLACE FUNCTION can_create_member ( v_user_id uuid ) RETURNS boolean AS $$
 DECLARE 
 	user_role_id integer;
 	manager_row_id integer;
 	manager_name text := 'manager';
 
 BEGIN
-	SELECT role INTO user_role_id FROM  household_members WHERE user_id = user_id;
+	SELECT role INTO user_role_id FROM  household_members WHERE user_id = v_user_id;
 	IF NOT FOUND THEN
 		RETURN false;
 	ELSE
@@ -58,14 +58,13 @@ $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION can_delete_member ( user_id uuid ) RETURNS boolean AS $$
+CREATE OR REPLACE FUNCTION can_delete_member ( v_user_id uuid ) RETURNS boolean AS $$
 BEGIN
-	RETURN can_create_member(user_id);
+	RETURN can_create_member(v_user_id);
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
--- procedures spent the day working on angular...
 -- +goose StatementBegin
 CREATE OR REPLACE PROCEDURE create_household ( household_name text, v_user_id uuid ) AS $$
 DECLARE
@@ -168,40 +167,43 @@ $$ LANGUAGE plpgsql;
 
 -- +goose StatementBegin 
 -- Need to check whether this is rolled back if the user is in another household.
-CREATE OR REPLACE PROCEDURE user_create_household_member ( creator_id uuid, member_name text,  user_id uuid, household_id uuid ) AS $$
+CREATE OR REPLACE PROCEDURE user_create_household_member ( creator_id uuid, member_name text,  v_user_id uuid, v_household_id uuid ) AS $$
 DECLARE
 	user_household_member_info record;
 	household_member_id uuid;
 BEGIN
 	IF NOT can_create_member(creator_id) THEN
-		RAISE EXCEPTION '% does not have sufficient permission to create a member in the household', user_id;
+		RAISE EXCEPTION '% does not have sufficient permission to create a member in the household', creator_id
+			USING ERRCODE = '42501';
 	END IF;
 
 	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = creator_id;
 	IF NOT FOUND THEN
-		RAISE EXCEPTION '% user is not a part of a household', creator_id;
+		RAISE EXCEPTION '% user is not a part of a household', creator_id
+			USING ERRCODE = '42501';
 	END IF;
 
-	IF user_household_member_info.household_id <> household_id THEN
-		RAISE EXCEPTION 'you cannot create a member in another household';
+	IF user_household_member_info.household_id <> v_household_id THEN
+		RAISE EXCEPTION 'you cannot create a member in another household'
+			USING ERRCODE = '42501';
 	END IF;
 
-	CALL create_household_member(member_name, NULL, household_id, household_member_id);
+	CALL create_household_member(member_name, NULL, v_household_id, household_member_id);
 	IF user_id IS NOT NULL THEN
-		CALL invite_user_to_household(creator_id, user_id, household_id, household_member_id);
+		CALL invite_user_to_household(creator_id, v_user_id, v_household_id, household_member_id);
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE create_household_member ( member_name text, user_id uuid, household_id uuid, OUT household_member_id uuid ) AS $$
+CREATE OR REPLACE PROCEDURE create_household_member ( member_name text, v_user_id uuid, v_household_id uuid, OUT household_member_id uuid ) AS $$
 BEGIN
-	IF user_id IS NOT NULL THEN
+	IF v_user_id IS NOT NULL THEN
 		-- Is the user already in a household?
 		SELECT household_id 
 		FROM household_members 
-		WHERE user_id = user_id;
+		WHERE user_id = v_user_id;
 
 		IF FOUND THEN 
 			RAISE unique_violation USING DETAIL = 'User is already a part of a household.';
@@ -216,8 +218,8 @@ BEGIN
 		NOW(),
 		NOW(),
 		4,
-		household_id,
-		user_id
+		v_household_id,
+		v_user_id
 	) RETURNING id INTO household_member_id;
 
 END;
@@ -232,12 +234,14 @@ DECLARE
 BEGIN
 	SELECT id, role, household_id, user_id INTO updater_household_member_info WHERE user_id = updater_id;
 	IF NOT FOUND THEN
-		RAISE insufficient_privilege USING DETAIL = '% user is not a part of a household', v_user_id;
+		RAISE '% user is not a part of a household', v_user_id
+		USING ERRCODE = insufficient_privilege;
 	END IF;
 
 	SELECT id, role, household_id, user_id INTO household_member_info WHERE id = household_member_id;
 	IF NOT FOUND THEN
-		RAISE no_data_found USING DETAIL = 'Cannot find a household member with an id of %', household_member_id;
+		RAISE 'Cannot find a household member with an id of %', household_member_id
+		USING ERRCODE = no_data_found;
 	END IF;
 
 
@@ -250,7 +254,7 @@ BEGIN
 	END IF;
 
 	-- set new_member_name and new_role based on whether they are null
-	member_name := COALESCE(member_name, household_member_info.name);
+	new_member_name := COALESCE(member_name, household_member_info.name);
 	new_role := COALESCE(new_role, hoseuhold_member_info.role);
 
 	IF updated_household_member_info.role <= new_role THEN -- add in another condition to allow the household owner to give the household to someone else?
