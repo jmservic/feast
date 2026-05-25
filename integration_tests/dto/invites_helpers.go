@@ -20,4 +20,3 @@ func (c Client) GetInvites(token string) *http.Response {
 
 	return res
 }
-
