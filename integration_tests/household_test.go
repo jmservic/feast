@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestCreateNewHousehold(t *testing.T) {
+func TestCreateHousehold(t *testing.T) {
 	// arrange
 	helpers.LoadDotEnv()
 	name := "jonathan"
@@ -17,19 +17,20 @@ func TestCreateNewHousehold(t *testing.T) {
 
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
 
-	res := dto.CreateUser(t, feastUrl, name, email, password)
+	res := client.CreateUser(name, email, password)
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status created, got: %d", res.StatusCode)
 	}
 	res.Body.Close()
 
-	res = dto.LoginUser(t, feastUrl, email, password)
+	res = client.LoginUser(email, password)
 	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
 
 	// act
-	res = dto.CreateHousehold(t, feastUrl, loginResponse.Token, householdName)
+	res = client.CreateHousehold(loginResponse.Token, householdName)
 	sut := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
 
 	// assert
@@ -37,7 +38,10 @@ func TestCreateNewHousehold(t *testing.T) {
 	// add in check for a new household member after we get to those endpoints.
 }
 
-//Add tests for the owner and a random member trying to create a new household (should fail)
+// Add tests for the owner and a random member trying to create a new household (should fail)
+func TestCreateHouseholdForUserInAHousehold(t *testing.T) {
+	t.FailNow()
+}
 
 func TestGetHousehold(t *testing.T) {
 	helpers.LoadDotEnv()
@@ -60,16 +64,17 @@ func TestGetHousehold(t *testing.T) {
 
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
 
 	// create the owner
-	res := dto.CreateUser(t, feastUrl, owner.name, owner.email, owner.password)
+	res := client.CreateUser(owner.name, owner.email, owner.password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status created, got :%d", res.StatusCode)
 	}
 	res.Body.Close()
 
 	// create the non member
-	res = dto.CreateUser(t, feastUrl, nonMember.name, nonMember.email, nonMember.password)
+	res = client.CreateUser(nonMember.name, nonMember.email, nonMember.password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status created, got :%d", res.StatusCode)
 	}
@@ -77,15 +82,15 @@ func TestGetHousehold(t *testing.T) {
 
 	// login as users
 	//Owner
-	res = dto.LoginUser(t, feastUrl, owner.email, owner.password)
+	res = client.LoginUser(owner.email, owner.password)
 	ownerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
 
 	//non member
-	res = dto.LoginUser(t, feastUrl, nonMember.email, nonMember.password)
+	res = client.LoginUser(nonMember.email, nonMember.password)
 	nonMemberTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
 
 	// create the household
-	res = dto.CreateHousehold(t, feastUrl, ownerTokenRes.Token, householdName)
+	res = client.CreateHousehold(ownerTokenRes.Token, householdName)
 	householdInfo := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
 
 	testCases := []struct {
@@ -106,7 +111,7 @@ func TestGetHousehold(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			res := dto.GetHousehold(t, feastUrl, testCase.householdInfo.Id.String(), testCase.token)
+			res := client.GetHousehold(testCase.householdInfo.Id.String(), testCase.token)
 			householdResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusOK)
 			if householdResponse.Id != testCase.householdInfo.Id || householdResponse.Name != testCase.householdInfo.Name {
 				t.Fatal("household response differs from stored household info!")
@@ -140,16 +145,17 @@ func TestUpdateHousehold(t *testing.T) {
 
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
 
 	// create the owner
-	res := dto.CreateUser(t, feastUrl, owner.name, owner.email, owner.password)
+	res := client.CreateUser(owner.name, owner.email, owner.password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status created, got :%d", res.StatusCode)
 	}
 	res.Body.Close()
 
 	// create the non member
-	res = dto.CreateUser(t, feastUrl, nonMember.name, nonMember.email, nonMember.password)
+	res = client.CreateUser(nonMember.name, nonMember.email, nonMember.password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status created, got :%d", res.StatusCode)
 	}
@@ -157,15 +163,15 @@ func TestUpdateHousehold(t *testing.T) {
 
 	// login as users
 	//Owner
-	res = dto.LoginUser(t, feastUrl, owner.email, owner.password)
+	res = client.LoginUser(owner.email, owner.password)
 	ownerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
 
 	//non member
-	res = dto.LoginUser(t, feastUrl, nonMember.email, nonMember.password)
+	res = client.LoginUser(nonMember.email, nonMember.password)
 	nonMemberTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
 
 	// create the household
-	res = dto.CreateHousehold(t, feastUrl, ownerTokenRes.Token, householdName)
+	res = client.CreateHousehold(ownerTokenRes.Token, householdName)
 	householdInfo := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
 
 	testCases := []struct {
@@ -192,7 +198,7 @@ func TestUpdateHousehold(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
 			//Test Update
-			res := dto.UpdateHousehold(t, feastUrl, testCase.householdInfo.Id.String(), testCase.newName, testCase.token)
+			res := client.UpdateHousehold(testCase.householdInfo.Id.String(), testCase.newName, testCase.token)
 			defer res.Body.Close()
 			if res.StatusCode != testCase.responseCode {
 				t.Fatalf("Expected Update Household to return %d code, received %d", testCase.responseCode, res.StatusCode)
@@ -207,7 +213,7 @@ func TestUpdateHousehold(t *testing.T) {
 				}
 			} else {
 				//Check that the name stayed the same
-				getRes := dto.GetHousehold(t, feastUrl, testCase.householdInfo.Id.String(), testCase.token)
+				getRes := client.GetHousehold(testCase.householdInfo.Id.String(), testCase.token)
 				defer getRes.Body.Close()
 				if getRes.StatusCode != http.StatusOK {
 					t.Fatalf("Expected Get Household to return %d code, received %d", http.StatusOK, getRes.StatusCode)
@@ -222,6 +228,7 @@ func TestUpdateHousehold(t *testing.T) {
 			}
 		})
 	}
+	t.FailNow()
 }
 
 // Test cases -
@@ -249,16 +256,17 @@ func TestDeleteHousehold(t *testing.T) {
 
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
 
 	// create the owner
-	res := dto.CreateUser(t, feastUrl, owner.name, owner.email, owner.password)
+	res := client.CreateUser(owner.name, owner.email, owner.password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status created, got :%d", res.StatusCode)
 	}
 	res.Body.Close()
 
 	// create the non member
-	res = dto.CreateUser(t, feastUrl, nonMember.name, nonMember.email, nonMember.password)
+	res = client.CreateUser(nonMember.name, nonMember.email, nonMember.password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status created, got :%d", res.StatusCode)
 	}
@@ -266,15 +274,15 @@ func TestDeleteHousehold(t *testing.T) {
 
 	// login as users
 	//Owner
-	res = dto.LoginUser(t, feastUrl, owner.email, owner.password)
+	res = client.LoginUser(owner.email, owner.password)
 	ownerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
 
 	//non member
-	res = dto.LoginUser(t, feastUrl, nonMember.email, nonMember.password)
+	res = client.LoginUser(nonMember.email, nonMember.password)
 	nonMemberTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
 
 	// create the household
-	res = dto.CreateHousehold(t, feastUrl, ownerTokenRes.Token, householdName)
+	res = client.CreateHousehold(ownerTokenRes.Token, householdName)
 	householdInfo := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
 
 	testCases := []struct {
@@ -298,13 +306,13 @@ func TestDeleteHousehold(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			res := dto.DeleteHousehold(t, feastUrl, testCase.householdInfo.Id.String(), testCase.token)
+			res := client.DeleteHousehold(testCase.householdInfo.Id.String(), testCase.token)
 			defer res.Body.Close()
 			if res.StatusCode != testCase.responseCode {
 				t.Fatalf("Expected Delete Household to return %d code, received %d", testCase.responseCode, res.StatusCode)
 			}
 
-			getRes := dto.GetHousehold(t, feastUrl, testCase.householdInfo.Id.String(), testCase.token)
+			getRes := client.GetHousehold(testCase.householdInfo.Id.String(), testCase.token)
 			defer getRes.Body.Close()
 
 			switch res.StatusCode {
@@ -322,4 +330,5 @@ func TestDeleteHousehold(t *testing.T) {
 
 		})
 	}
+	t.FailNow()
 }

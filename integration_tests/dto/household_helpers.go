@@ -8,22 +8,22 @@ import (
 	"testing"
 )
 
-func CreateHousehold(t *testing.T, feastUrl, token, name string) *http.Response {
+func (c Client) CreateHousehold(token, name string) *http.Response {
 	payload := HouseholdPayload{
 		Name: name,
 	}
 
-	body := helpers.CreateJSONReader(payload, t)
-	req, err := http.NewRequest(http.MethodPost, feastUrl+constants.HouseholdsPath, body)
+	body := helpers.CreateJSONReader(payload, c.t)
+	req, err := http.NewRequest(http.MethodPost, c.feastUrl+constants.HouseholdsPath, body)
 	if err != nil {
-		t.Fatalf("Error occurred when creating the create request: %v", err)
+		c.t.Fatalf("Error occurred when creating the create request: %v", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		c.t.Fatalf("Unexpected error: %v", err)
 	}
 
 	return res
@@ -38,51 +38,51 @@ func ValidateHouseholdCreateResponse(t *testing.T, householdCreateResponse House
 	}
 }
 
-func UpdateHousehold(t *testing.T, feastUrl, householdId, name, token string) *http.Response {
+func (c Client) UpdateHousehold(householdId, name, token string) *http.Response {
 	payload := HouseholdPayload{
 		Name: name,
 	}
-	body := helpers.CreateJSONReader(payload, t)
-	req, err := http.NewRequest(http.MethodPut, feastUrl+constants.HouseholdsPath+"/"+householdId, body)
+	body := helpers.CreateJSONReader(payload, c.t)
+	req, err := http.NewRequest(http.MethodPut, c.feastUrl+constants.HouseholdsPath+"/"+householdId, body)
 	if err != nil {
-		t.Fatalf("Error occurred when creating the create request: %v", err)
+		c.t.Fatalf("Error occurred when creating the create request: %v", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		c.t.Fatalf("Unexpected error: %v", err)
 	}
 
 	return res
 }
 
-func GetHousehold(t *testing.T, feastUrl, householdId, token string) *http.Response {
-	req, err := http.NewRequest(http.MethodGet, feastUrl+constants.HouseholdsPath+"/"+householdId, nil)
+func (c Client) GetHousehold(householdId, token string) *http.Response {
+	req, err := http.NewRequest(http.MethodGet, c.feastUrl+constants.HouseholdsPath+"/"+householdId, nil)
 	if err != nil {
-		t.Fatalf("Error occurred when creating the create request: %v", err)
+		c.t.Fatalf("Error occurred when creating the create request: %v", err)
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		c.t.Fatalf("Unexpected error: %v", err)
 	}
 
 	return res
 }
 
-func DeleteHousehold(t *testing.T, feastUrl, householdId, token string) *http.Response {
-	req, err := http.NewRequest(http.MethodDelete, feastUrl+constants.HouseholdsPath+"/"+householdId, nil)
+func (c Client) DeleteHousehold(householdId, token string) *http.Response {
+	req, err := http.NewRequest(http.MethodDelete, c.feastUrl+constants.HouseholdsPath+"/"+householdId, nil)
 	if err != nil {
-		t.Fatalf("Error occured when creating the delete request: %v", err)
+		c.t.Fatalf("Error occured when creating the delete request: %v", err)
 	}
 	req.Header.Add("Authorization", "Bearer "+token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		c.t.Fatalf("Unexpected error: %v", err)
 	}
 
 	return res

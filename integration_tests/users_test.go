@@ -21,8 +21,9 @@ func TestCreateNewUser(t *testing.T) {
 
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
 
-	res := dto.CreateUser(t, feastUrl, name, email, password)
+	res := client.CreateUser(name, email, password)
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
@@ -43,8 +44,9 @@ func TestCreateDuplicateUserFails(t *testing.T) {
 
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
 
-	res := dto.CreateUser(t, feastUrl, name, email, password)
+	res := client.CreateUser(name, email, password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
@@ -55,7 +57,7 @@ func TestCreateDuplicateUserFails(t *testing.T) {
 	dto.ValidateUserCreateResponse(t, sut, name, email)
 
 	res.Body.Close()
-	res = dto.CreateUser(t, feastUrl, name, email, password)
+	res = client.CreateUser(name, email, password)
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusBadRequest {
@@ -67,13 +69,14 @@ func TestUserLogin(t *testing.T) {
 	helpers.LoadDotEnv()
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
 
 	name := "jonathan"
 	email := "jon@example.com"
 	password := "very-secret!"
 
 	//Create the user
-	res := dto.CreateUser(t, feastUrl, name, email, password)
+	res := client.CreateUser(name, email, password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
 	}
@@ -120,7 +123,7 @@ func TestUserLogin(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			res := dto.LoginUser(t, feastUrl, testCase.email, testCase.password)
+			res := client.LoginUser(testCase.email, testCase.password)
 			if res.StatusCode != testCase.responseCode {
 				t.Fatalf("Expected status code %d, got: %d", testCase.responseCode, res.StatusCode)
 			}
@@ -150,6 +153,7 @@ func TestUpdateUser(t *testing.T) {
 	helpers.LoadDotEnv()
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
 
 	firstUser := UserInfo{
 		name:     "jonathan",
@@ -165,7 +169,7 @@ func TestUpdateUser(t *testing.T) {
 
 	// Create the two users
 	//first user
-	res := dto.CreateUser(t, feastUrl, firstUser.name, firstUser.email, firstUser.password)
+	res := client.CreateUser(firstUser.name, firstUser.email, firstUser.password)
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
@@ -179,7 +183,7 @@ func TestUpdateUser(t *testing.T) {
 	res.Body.Close()
 
 	//second user
-	res = dto.CreateUser(t, feastUrl, secondUser.name, secondUser.email, secondUser.password)
+	res = client.CreateUser(secondUser.name, secondUser.email, secondUser.password)
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
@@ -245,7 +249,7 @@ func TestUpdateUser(t *testing.T) {
 		t.Run(testCase.testName, func(t *testing.T) {
 			refreshShouldFail := false
 			//Login
-			res := dto.LoginUser(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
+			res := client.LoginUser(testCase.userInfo.email, testCase.userInfo.password)
 			if res.StatusCode != http.StatusOK {
 				t.Fatalf("Expected an OK response code, received: %d", res.StatusCode)
 			}
@@ -284,7 +288,7 @@ func TestUpdateUser(t *testing.T) {
 			res.Body.Close()
 
 			//Test refresh
-			res = dto.RefreshUser(t, feastUrl, userLoginResponse.RefreshToken)
+			res = client.RefreshUser(userLoginResponse.RefreshToken)
 
 			if (res.StatusCode != http.StatusOK && !refreshShouldFail) || (res.StatusCode != http.StatusUnauthorized && refreshShouldFail) {
 				t.Fatalf("Refresh should fail = %v, yet received a status code of %d", refreshShouldFail, res.StatusCode)
@@ -293,7 +297,7 @@ func TestUpdateUser(t *testing.T) {
 			res.Body.Close()
 
 			//Test login!
-			res = dto.LoginUser(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
+			res = client.LoginUser(testCase.userInfo.email, testCase.userInfo.password)
 			if res.StatusCode != http.StatusOK {
 				t.Fatalf("Expected an OK response code, received: %d", res.StatusCode)
 			}
@@ -303,11 +307,12 @@ func TestUpdateUser(t *testing.T) {
 
 }
 
-// Test for when we delete the user.... who is the owner of a household
+// Test for when we delete the user.... who is the owner of a household, and also a member of a household. The member id should be cleared
 func TestDeleteUser(t *testing.T) {
 	helpers.LoadDotEnv()
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
 
 	firstUser := UserInfo{
 		name:     "jonathan",
@@ -323,7 +328,7 @@ func TestDeleteUser(t *testing.T) {
 
 	// Create the two users
 	//first user
-	res := dto.CreateUser(t, feastUrl, firstUser.name, firstUser.email, firstUser.password)
+	res := client.CreateUser(firstUser.name, firstUser.email, firstUser.password)
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
@@ -337,7 +342,7 @@ func TestDeleteUser(t *testing.T) {
 	res.Body.Close()
 
 	//second user
-	res = dto.CreateUser(t, feastUrl, secondUser.name, secondUser.email, secondUser.password)
+	res = client.CreateUser(secondUser.name, secondUser.email, secondUser.password)
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status ok, got: %d", res.StatusCode)
@@ -350,7 +355,7 @@ func TestDeleteUser(t *testing.T) {
 	res.Body.Close()
 
 	//Login for first user
-	res = dto.LoginUser(t, feastUrl, firstUser.email, firstUser.password)
+	res = client.LoginUser(firstUser.email, firstUser.password)
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("Expected status ok for user login, got : %d", res.StatusCode)
 	}
@@ -389,7 +394,7 @@ func TestDeleteUser(t *testing.T) {
 			res.Body.Close()
 
 			// Test Login
-			res = dto.LoginUser(t, feastUrl, testCase.userInfo.email, testCase.userInfo.password)
+			res = client.LoginUser(testCase.userInfo.email, testCase.userInfo.password)
 			res.Body.Close()
 			if (testCase.responseCode == http.StatusOK && res.StatusCode != http.StatusUnauthorized) ||
 				(testCase.responseCode == http.StatusBadRequest && res.StatusCode != http.StatusOK) {
@@ -398,7 +403,7 @@ func TestDeleteUser(t *testing.T) {
 
 			// Test Refresh if we have a token
 			if testCase.refreshToken != "" {
-				res = dto.RefreshUser(t, feastUrl, testCase.refreshToken)
+				res = client.RefreshUser(testCase.refreshToken)
 				//If the delete was successful this should fail, else it should succeed.
 				if (testCase.responseCode == http.StatusOK && res.StatusCode != http.StatusUnauthorized) ||
 					(testCase.responseCode == http.StatusBadRequest && res.StatusCode != http.StatusOK) {
@@ -408,4 +413,5 @@ func TestDeleteUser(t *testing.T) {
 			}
 		})
 	}
+	t.FailNow()
 }

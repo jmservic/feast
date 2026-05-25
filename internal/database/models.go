@@ -20,7 +20,7 @@ type Household struct {
 type HouseholdInvite struct {
 	InviterID         uuid.UUID
 	InviteeID         uuid.UUID
-	HouseholdMemberID uuid.UUID
+	HouseholdMemberID *uuid.UUID
 	HouseholdID       uuid.UUID
 	CreatedAt         time.Time
 }
@@ -32,7 +32,7 @@ type HouseholdMember struct {
 	UpdatedAt   time.Time
 	Role        int
 	HouseholdID uuid.UUID
-	UserID      uuid.UUID
+	UserID      *uuid.UUID
 }
 
 type HouseholdRole struct {

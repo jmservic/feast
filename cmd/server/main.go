@@ -83,6 +83,9 @@ func main() {
 	handler.Handle("GET /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMember))
 	handler.Handle("PUT /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerUpdateHouseholdMember))
 	handler.Handle("DELETE /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerDeleteHouseholdMember))
+	handler.Handle("GET /api/households/members/invites", cfg.middlewareAuthentication(cfg.handlerGetMemberInvites))
+	handler.Handle("POST /api/households/members/invites", cfg.middlewareAuthentication(cfg.handlerHandleMemberInvite))
+	handler.Handle("POST /api/households/members/invite", cfg.middlewareAuthentication(cfg.handlerInviteUserToHousehold)) //Don't like this...
 
 	// Admin
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)

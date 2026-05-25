@@ -8,6 +8,7 @@ import (
 	"github.com/jmservic/feast/internal/database"
 	"github.com/jmservic/feast/internal/dto"
 	"net/http"
+	"strings"
 	// "time"
 )
 
@@ -19,8 +20,8 @@ func (cfg apiConfig) handlerCreateHouseholdMember(w http.ResponseWriter, r *http
 	}
 
 	params := struct {
-		Name   string    `json:"name"`
-		UserId uuid.UUID `json:"user_id"`
+		Name   string     `json:"name"`
+		UserId *uuid.UUID `json:"user_id"`
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
@@ -47,6 +48,10 @@ func (cfg apiConfig) handlerCreateHouseholdMember(w http.ResponseWriter, r *http
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (cfg apiConfig) handlerInviteUserToHousehold(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+
 }
 
 func (cfg apiConfig) handlerUpdateHouseholdMember(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
@@ -160,4 +165,70 @@ func (cfg apiConfig) handlerDeleteHouseholdMember(w http.ResponseWriter, r *http
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (cfg apiConfig) handlerGetMemberInvites(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	// This will return invites where you are the invitee or the inviter
+	invites, err := cfg.db.GetHouseholdInvites(r.Context(), userId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.MemberInviteRetrievalByUserErrStr, err)
+		return
+	}
+
+	var rtnInvites []dto.HouseholdInviteResources
+	for _, inviteInfo := range invites {
+		rtnInvites = append(rtnInvites, dto.HouseholdInviteResources{
+			InviterId:         inviteInfo.InviterID,
+			InviteeId:         inviteInfo.InviteeID,
+			HouseholdMemberId: inviteInfo.HouseholdMemberID,
+			HouseholdId:       inviteInfo.HouseholdID,
+			CreatedAt:         inviteInfo.CreatedAt,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, rtnInvites)
+}
+
+func (cfg apiConfig) handlerHandleMemberInvite(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	householdId, err := uuid.Parse(r.FormValue("household_id"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
+		return
+	}
+
+	action := strings.ToLower(r.FormValue("action"))
+	switch action {
+	case "accept":
+		err = cfg.db.AcceptHouseholdInvite(r.Context(), database.AcceptHouseholdInviteParams{
+			InviteeID:   userId,
+			HouseholdID: householdId,
+		})
+		if err != nil {
+			respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.InviteAcceptErrStr, err)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	case "decline":
+		declinedInvite, err := cfg.db.DeclineHouseholdInvite(r.Context(), database.DeclineHouseholdInviteParams{
+			InviteeID:   userId,
+			HouseholdID: householdId,
+		})
+		if err != nil {
+			respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.InviteDeclineErrStr, err)
+			return
+		}
+
+		// return the declinedInvite
+		respondWithJSON(w, http.StatusOK, dto.HouseholdInviteResources{
+			InviterId:         declinedInvite.InviterID,
+			InviteeId:         declinedInvite.InviteeID,
+			HouseholdMemberId: declinedInvite.HouseholdMemberID,
+			HouseholdId:       declinedInvite.HouseholdID,
+			CreatedAt:         declinedInvite.CreatedAt,
+		})
+	default:
+		respondWithError(w, http.StatusBadRequest, constants.HandleMemberInviteActionErrStr, nil)
+		return
+	}
 }

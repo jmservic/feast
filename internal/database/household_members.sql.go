@@ -32,7 +32,7 @@ CALL user_create_household_member($1, $2, $3, $4)
 type CreateHouseholdMemberParams struct {
 	CreatorID   uuid.UUID
 	MemberName  string
-	UserID      uuid.UUID
+	UserID      *uuid.UUID
 	HouseholdID uuid.UUID
 }
 
@@ -44,6 +44,30 @@ func (q *Queries) CreateHouseholdMember(ctx context.Context, arg CreateHousehold
 		arg.HouseholdID,
 	)
 	return err
+}
+
+const declineHouseholdInvite = `-- name: DeclineHouseholdInvite :one
+DELETE FROM household_invites
+WHERE invitee_id = $1 AND household_id = $2
+returning inviter_id, invitee_id, household_member_id, household_id, created_at
+`
+
+type DeclineHouseholdInviteParams struct {
+	InviteeID   uuid.UUID
+	HouseholdID uuid.UUID
+}
+
+func (q *Queries) DeclineHouseholdInvite(ctx context.Context, arg DeclineHouseholdInviteParams) (HouseholdInvite, error) {
+	row := q.db.QueryRow(ctx, declineHouseholdInvite, arg.InviteeID, arg.HouseholdID)
+	var i HouseholdInvite
+	err := row.Scan(
+		&i.InviterID,
+		&i.InviteeID,
+		&i.HouseholdMemberID,
+		&i.HouseholdID,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const deleteHouseholdMember = `-- name: DeleteHouseholdMember :exec
@@ -58,6 +82,37 @@ type DeleteHouseholdMemberParams struct {
 func (q *Queries) DeleteHouseholdMember(ctx context.Context, arg DeleteHouseholdMemberParams) error {
 	_, err := q.db.Exec(ctx, deleteHouseholdMember, arg.UserID, arg.HouseholdMemberID)
 	return err
+}
+
+const getHouseholdInvites = `-- name: GetHouseholdInvites :many
+SELECT inviter_id, invitee_id, household_member_id, household_id, created_at FROM household_invites
+WHERE inviter_id = $1 OR invitee_id = $1
+`
+
+func (q *Queries) GetHouseholdInvites(ctx context.Context, inviterID uuid.UUID) ([]HouseholdInvite, error) {
+	rows, err := q.db.Query(ctx, getHouseholdInvites, inviterID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []HouseholdInvite
+	for rows.Next() {
+		var i HouseholdInvite
+		if err := rows.Scan(
+			&i.InviterID,
+			&i.InviteeID,
+			&i.HouseholdMemberID,
+			&i.HouseholdID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getHouseholdMember = `-- name: GetHouseholdMember :one

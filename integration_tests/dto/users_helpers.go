@@ -9,18 +9,18 @@ import (
 	"testing"
 )
 
-func CreateUser(t *testing.T, feastUrl, name, email, password string) *http.Response {
+func (c Client) CreateUser(name, email, password string) *http.Response {
 	payload := UserCreatePayload{
 		Name:     name,
 		Email:    email,
 		Password: password,
 	}
 
-	body := helpers.CreateJSONReader(payload, t)
+	body := helpers.CreateJSONReader(payload, c.t)
 
-	res, err := http.Post(feastUrl+constants.UsersPath, "application/json", body)
+	res, err := http.Post(c.feastUrl+constants.UsersPath, "application/json", body)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		c.t.Fatalf("Unexpected error: %v", err)
 	}
 
 	return res
@@ -39,28 +39,28 @@ func ValidateUserCreateResponse(t *testing.T, userCreateResponse UserCreateRespo
 
 }
 
-func LoginUser(t *testing.T, feastUrl, email, password string) *http.Response {
+func (c Client) LoginUser(email, password string) *http.Response {
 	payload := UserLoginPayload{
 		Email:    email,
 		Password: password,
 	}
-	body := helpers.CreateJSONReader(payload, t)
-	res, err := http.Post(feastUrl+constants.LoginPath, "application/json", body)
+	body := helpers.CreateJSONReader(payload, c.t)
+	res, err := http.Post(c.feastUrl+constants.LoginPath, "application/json", body)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		c.t.Fatalf("Unexpected error: %v", err)
 	}
 	return res
 }
 
-func RefreshUser(t *testing.T, feastUrl, refreshToken string) *http.Response {
-	req, err := http.NewRequest(http.MethodPost, feastUrl+constants.RefreshPath, nil)
+func (c Client) RefreshUser(refreshToken string) *http.Response {
+	req, err := http.NewRequest(http.MethodPost, c.feastUrl+constants.RefreshPath, nil)
 	if err != nil {
-		t.Fatalf("Error occurred when creating the refresh request: %v", err)
+		c.t.Fatalf("Error occurred when creating the refresh request: %v", err)
 	}
 	req.Header.Add("Authorization", "Bearer "+refreshToken)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
+		c.t.Fatalf("Unexpected error: %v", err)
 	}
 
 	return res

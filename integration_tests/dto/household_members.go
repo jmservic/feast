@@ -5,7 +5,12 @@ import (
 	"time"
 )
 
-type HouseholdMemberResources struct {
+type HouseholdMemberPayload struct {
+	Name   string     `json:"name"`
+	UserId *uuid.UUID `json:"user_id"`
+}
+
+type HouseholdMemberResponse struct {
 	Id          uuid.UUID  `json:"id"`
 	Name        string     `json:"name"`
 	CreatedAt   time.Time  `json:"created_at"`
