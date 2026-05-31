@@ -13,6 +13,7 @@ import (
 
 type apiConfig struct {
 	db       *database.Queries
+	conn     *pgx.Conn
 	platform string
 	secret   string
 }

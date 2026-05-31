@@ -5,8 +5,10 @@ import (
 )
 
 const (
+	BeginTransactionErrStr                       string = "error creating a database transaction"
 	EmptyPasswordErrStr                          string = "password field cannot be empty"
 	EmptyParameterErrStr                         string = "a required parameter is empty"
+	GetNewInstanceErrStr                         string = "error getting the newly created instance"
 	HashCheckErrStr                              string = "error comparing hashes"
 	HandleMemberInviteActionErrStr               string = "Invalid string representing invite action, must be either accept or decline"
 	HouseholdCreationErrStr                      string = "error creating a new household"

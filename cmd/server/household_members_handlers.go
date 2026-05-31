@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/google/uuid"
 	//	"github.com/jmservic/feast/internal/auth"
+	"github.com/jackc/pgx/v5"
 	"github.com/jmservic/feast/internal/constants"
 	"github.com/jmservic/feast/internal/database"
 	"github.com/jmservic/feast/internal/dto"
@@ -34,8 +35,28 @@ func (cfg apiConfig) handlerCreateHouseholdMember(w http.ResponseWriter, r *http
 		respondWithError(w, http.StatusBadRequest, constants.EmptyParameterErrStr, err)
 		return
 	}
+	// create a repeatable read transaction
+	tx, err := cfg.conn.BeginTx(r.Context(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.BeginTransactionErrStr, err)
+		return
+	}
+	defer tx.Rollback(r.Context())
 
-	err = cfg.db.CreateHouseholdMember(r.Context(), database.CreateHouseholdMemberParams{
+	queries := cfg.db.WithTx(tx)
+
+	currMembers, err := queries.GetHouseholdMembers(r.Context(), householdId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdMemberRetrievalByIdErrStr, err)
+		return
+	}
+
+	currMemberIds := make(map[string]struct{})
+	for _, member := range currMembers {
+		currMemberIds[member.ID.String()] = struct{}{}
+	}
+
+	err = queries.CreateHouseholdMember(r.Context(), database.CreateHouseholdMemberParams{
 		CreatorID:   userId,
 		MemberName:  params.Name,
 		UserID:      params.UserId,
@@ -47,7 +68,43 @@ func (cfg apiConfig) handlerCreateHouseholdMember(w http.ResponseWriter, r *http
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	updatedMembers, err := queries.GetHouseholdMembers(r.Context(), householdId)
+	var newMember *database.HouseholdMember
+
+	for i, member := range updatedMembers {
+		if _, ok := currMemberIds[member.ID.String()]; ok {
+			continue
+		}
+		newMember = &updatedMembers[i]
+		break
+	}
+
+	if len(updatedMembers)-len(currMembers) != 1 {
+		respondWithError(w, http.StatusInternalServerError, constants.HouseholdMemberCreateErrStr, err)
+		return
+	}
+
+	if newMember == nil {
+		respondWithError(w, http.StatusInternalServerError, constants.GetNewInstanceErrStr, err)
+		return
+	}
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdMemberRetrievalByIdErrStr, err)
+		return
+	}
+
+	tx.Commit(r.Context())
+
+	respondWithJSON(w, http.StatusCreated, dto.HouseholdMemberResources{
+		Id:          newMember.ID,
+		Name:        newMember.Name,
+		CreatedAt:   newMember.CreatedAt,
+		UpdatedAt:   newMember.UpdatedAt,
+		Role:        newMember.Role,
+		HouseholdId: newMember.HouseholdID,
+		UserId:      newMember.UserID,
+	})
 }
 
 func (cfg apiConfig) handlerInviteUserToHousehold(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {

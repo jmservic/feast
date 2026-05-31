@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestCreateHouseholdMember(t *testing.T) { // what about creating a member from an user that's already in another household?
+func TestCreateHouseholdMember(t *testing.T) {
 	// arrange
 	helpers.LoadDotEnv()
 	owner := UserInfo{
@@ -183,6 +183,35 @@ func TestUpdateHouseholdMember(t *testing.T) {
 }
 
 func TestGetHouseholdMember(t *testing.T) {
+	helpers.LoadDotEnv()
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+
+	householdName := "Service family"
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	// create owner
+	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// login
+	res = client.LoginUser(owner.email, owner.password)
+	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	//create household
+	res = client.CreateHousehold(loginResponse.Token, householdName)
+	householdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	res = client.CreateHouseholdMember(loginResponse.Token, "cassidy", householdCreationResponse.Id, nil)
+	memberCreationResponse := helpers.GetResponseObject[dto.MemberCreateResponse(t, res, http.StatusCreated)
 	t.FailNow()
 }
 

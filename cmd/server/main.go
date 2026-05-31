@@ -50,6 +50,7 @@ func main() {
 
 	cfg := apiConfig{
 		db:       dbQueries,
+		conn:     conn,
 		platform: platform,
 		secret:   jwtSecret,
 	}
