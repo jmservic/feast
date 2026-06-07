@@ -191,6 +191,7 @@ func TestGetHouseholdMember(t *testing.T) {
 	}
 
 	householdName := "Service family"
+	memberName := "cassidy"
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
 	client := dto.NewClient(t, feastUrl)
@@ -210,9 +211,14 @@ func TestGetHouseholdMember(t *testing.T) {
 	res = client.CreateHousehold(loginResponse.Token, householdName)
 	householdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
 
-	res = client.CreateHouseholdMember(loginResponse.Token, "cassidy", householdCreationResponse.Id, nil)
-	memberCreationResponse := helpers.GetResponseObject[dto.MemberCreateResponse(t, res, http.StatusCreated)
-	t.FailNow()
+	//create member
+	res = client.CreateHouseholdMember(loginResponse.Token, memberName, householdCreationResponse.Id, nil)
+	memberCreationResponse := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	res = client.GetHouseholdMember(loginResponse.Token, householdCreationResponse.Id, memberCreationResponse.Id)
+	getMemberResponse := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusOK)
+
+	client.ValidateHouseholdMemberResponse(memberCreationResponse, getMemberResponse)
 }
 
 func TestGetHouseholdMembers(t *testing.T) {
