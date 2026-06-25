@@ -445,14 +445,14 @@ BEGIN
 	IF invite_info.household_member_id IS NOT NULL
 	THEN
 		UPDATE household_members
-			SET user_id = invitee_id
+			SET user_id = v_invitee_id
 		WHERE id = invite_info.household_member_id;
 	ELSE 
-		SELECT name INTO member_name FROM users WHERE id = invitee_id;
-		CALL create_household_member(member_name, invitee_id, household_id);
+		SELECT name INTO member_name FROM users WHERE id = v_invitee_id;
+		CALL create_household_member(member_name, v_invitee_id, household_id);
 	END IF;
 
-	DELETE FROM household_invites WHERE invitee_id = invitee_id;
+	DELETE FROM household_invites WHERE invitee_id = v_invitee_id;
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd

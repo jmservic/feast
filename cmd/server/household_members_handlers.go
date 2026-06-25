@@ -265,7 +265,7 @@ func (cfg apiConfig) handlerHandleMemberInvite(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	case "decline":
 		declinedInvite, err := cfg.db.DeclineHouseholdInvite(r.Context(), database.DeclineHouseholdInviteParams{
 			InviteeID:   userId,

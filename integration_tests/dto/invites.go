@@ -12,3 +12,8 @@ type InviteResponse struct {
 	HouseholdId       uuid.UUID  `json:"household_id"`
 	CreatedAt         time.Time  `json:"created_at"`
 }
+
+type InviteHandlePayload struct {
+	HouseholdId uuid.UUID `json:"household_id"`
+	Action      string    `json:"action"`
+}

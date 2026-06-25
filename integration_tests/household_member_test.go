@@ -163,11 +163,14 @@ func TestUpdateHouseholdMember(t *testing.T) {
 		email:    "Jon@example.com",
 		password: "very-secret",
 	}
-	nonMember := UserInfo{
+	Member := UserInfo{
 		name:     "cassidy",
 		email:    "Cass@example.com",
 		password: "kalina",
 	}
+	//managerMember
+	//nonmember (not in a household)
+	//nonmember (in another household)
 
 	householdName := "Service family"
 
@@ -285,9 +288,205 @@ func TestDeleteHouseholdMember(t *testing.T) {
 }
 
 func TestGetHouseholdInvites(t *testing.T) {
-	t.FailNow()
+	helpers.LoadDotEnv()
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+	nonMember := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
+
+	householdName := "Service family"
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	// create owner
+	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// login
+	res = client.LoginUser(owner.email, owner.password)
+	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	//create household
+	res = client.CreateHousehold(loginResponse.Token, householdName)
+	householdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	//create nonMember
+	res = client.CreateUser(nonMember.name, nonMember.email, nonMember.password)
+	createUserResponse := helpers.GetResponseObject[dto.UserCreateResponse](t, res, http.StatusCreated)
+
+	//nonMember Login
+	res = client.LoginUser(nonMember.email, nonMember.password)
+	nonMemberLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	//create the new member and invite the non member
+	res = client.CreateHouseholdMember(loginResponse.Token, "cassidy", householdCreationResponse.Id, &createUserResponse.Id)
+	createMemberResponse := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	res = client.GetInvites(nonMemberLoginResponse.Token)
+	invites := helpers.GetResponseObject[[]dto.InviteResponse](t, res, http.StatusOK)
+
+	for _, invite := range invites {
+		if invite.InviterId == loginResponse.Id && invite.InviteeId == nonMemberLoginResponse.Id && invite.HouseholdMemberId != nil &&
+			*invite.HouseholdMemberId == createMemberResponse.Id && invite.HouseholdId == householdCreationResponse.Id {
+			return
+		}
+	}
+
+	t.Fatalf("Could not find an invite with InviterId: %v, InviteeId: %v, HouseholdId: %v, and HouseholdMemberId: %v",
+		loginResponse.Id, nonMemberLoginResponse.Id, createMemberResponse.Id, householdCreationResponse.Id)
+
 }
 
 func TestHandleHouseholdInvites(t *testing.T) {
-	t.FailNow()
+	helpers.LoadDotEnv()
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+	nonMemberAccept := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
+
+	nonMemberDecline := UserInfo{
+		name:     "joey",
+		email:    "Joey@example.com",
+		password: "fAcE-PaIn",
+	}
+
+	householdName := "Service family"
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	// create owner
+	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// login
+	res = client.LoginUser(owner.email, owner.password)
+	ownerLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	//create household
+	res = client.CreateHousehold(ownerLoginResponse.Token, householdName)
+	householdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	//create nonMembers and login
+	res = client.CreateUser(nonMemberAccept.name, nonMemberAccept.email, nonMemberAccept.password)
+	createUserAcceptResponse := helpers.GetResponseObject[dto.UserCreateResponse](t, res, http.StatusCreated)
+
+	res = client.LoginUser(nonMemberAccept.email, nonMemberAccept.password)
+	nonMemberAcceptLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	res = client.CreateUser(nonMemberDecline.name, nonMemberDecline.email, nonMemberDecline.password)
+	createUserDeclineResponse := helpers.GetResponseObject[dto.UserCreateResponse](t, res, http.StatusCreated)
+
+	res = client.LoginUser(nonMemberDecline.email, nonMemberDecline.password)
+	nonMemberDeclineLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	//create the new member and invite the non member
+	res = client.CreateHouseholdMember(ownerLoginResponse.Token, "cassidy", householdCreationResponse.Id, &createUserAcceptResponse.Id)
+	createMemberAcceptResponse := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	res = client.CreateHouseholdMember(ownerLoginResponse.Token, "joey", householdCreationResponse.Id, &createUserDeclineResponse.Id)
+	createMemberDeclineResponse := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	testCases := []struct {
+		testName    string
+		userId      uuid.UUID
+		token       string
+		householdId uuid.UUID
+		memberId    uuid.UUID
+		accept      bool
+	}{
+		{
+			testName:    "Non Member Accepts Household Request",
+			userId:      nonMemberAcceptLoginResponse.Id,
+			token:       nonMemberAcceptLoginResponse.Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    createMemberAcceptResponse.Id,
+			accept:      true,
+		},
+		{
+			testName:    "Non Member Declines Household Request",
+			userId:      nonMemberDeclineLoginResponse.Id,
+			token:       nonMemberDeclineLoginResponse.Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    createMemberDeclineResponse.Id,
+			accept:      false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			//Check and make sure we have an invite from the household
+			res := client.GetInvites(testCase.token)
+			invites := helpers.GetResponseObject[[]dto.InviteResponse](t, res, http.StatusOK)
+			inviteFound := false
+			for _, invite := range invites {
+				if invite.HouseholdId == testCase.householdId && invite.HouseholdMemberId != nil &&
+					*invite.HouseholdMemberId == testCase.memberId {
+					inviteFound = true
+				}
+			}
+
+			if !inviteFound {
+				t.Fatal("Could not find an invite with the expected household and household member")
+			}
+
+			res = client.HandleInvite(testCase.token, testCase.householdId, testCase.accept)
+
+			if testCase.accept && res.StatusCode != http.StatusNoContent {
+				t.Fatalf("Expected to receive %v when accepting an invite, but received %v", http.StatusNoContent, res.StatusCode)
+				res.Body.Close()
+			}
+
+			if !testCase.accept {
+				declinedInvite := helpers.GetResponseObject[dto.InviteResponse](t, res, http.StatusOK)
+
+				if declinedInvite.HouseholdId != testCase.householdId {
+					t.Errorf("Expected an household id of %v, got %v", testCase.householdId, declinedInvite.HouseholdId)
+				}
+				if *declinedInvite.HouseholdMemberId != testCase.memberId {
+					t.Errorf("Expected a household member id of %v, got %v", testCase.memberId, declinedInvite.HouseholdMemberId)
+				}
+				if declinedInvite.InviterId != ownerLoginResponse.Id {
+					t.Errorf("Expected an inviter id of %v, got %v", ownerLoginResponse.Id, declinedInvite.InviterId)
+				}
+				if declinedInvite.InviteeId != testCase.userId {
+					t.Errorf("Expected an invitee id of %v, got %v", testCase.userId, declinedInvite.InviteeId)
+				}
+				if t.Failed() {
+					t.FailNow()
+				}
+			}
+
+			res = client.GetHouseholdMember(testCase.token, testCase.householdId, testCase.memberId)
+			memberInfo := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusOK)
+
+			if testCase.accept && ((memberInfo.UserId != nil && *memberInfo.UserId != testCase.userId) || memberInfo.UserId == nil) {
+				t.Fatalf("Expected the test case user (%v) to be the userId for the household member (%v)", testCase.userId, memberInfo.UserId)
+			}
+			if !testCase.accept && memberInfo.UserId != nil {
+				t.Fatalf("Expected the household member to have a nil userId, got %v", memberInfo.UserId)
+			}
+
+			// should also remove other invites if accepted, and keep other invites if it succeeds
+		})
+	}
 }
