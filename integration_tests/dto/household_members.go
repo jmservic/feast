@@ -19,3 +19,9 @@ type HouseholdMemberResponse struct {
 	HouseholdId uuid.UUID  `json:"household_id"`
 	UserId      *uuid.UUID `json:"user_id"`
 }
+
+type HouseholdMemberUpdatePayload struct {
+	Name   string    `json:"name"`
+	UserId uuid.UUID `json:"user_id"`
+	Role   int       `json:"role"`
+}

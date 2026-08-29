@@ -8,6 +8,7 @@ import (
 	"github.com/jmservic/feast/internal/auth"
 	"github.com/jmservic/feast/internal/constants"
 	"github.com/jmservic/feast/internal/database"
+	"log"
 	"net/http"
 )
 
@@ -23,11 +24,15 @@ func mapDbErrorToHttpStatusCode(err error) int {
 	code := http.StatusInternalServerError
 
 	if errors.As(err, &pgErr) {
+		log.Printf("Database error (%s) message: %s\n", pgErr.Code, pgErr.Detail)
 		if pgErr.Code == "23505" || pgErr.Code == "23503" {
 			code = http.StatusBadRequest
 		}
-		if pgErr.Code == "42501" {
+		if pgErr.Code == "42501" || pgErr.Code == "P0001" {
 			code = http.StatusForbidden
+		}
+		if pgErr.Code == "P0002" {
+			code = http.StatusNotFound
 		}
 	} else {
 		if err == pgx.ErrNoRows {

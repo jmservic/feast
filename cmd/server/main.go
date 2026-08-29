@@ -81,12 +81,12 @@ func main() {
 	//Might not need this one
 	handler.Handle("GET /api/households/{household_id}/members", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMembers))
 	handler.Handle("POST /api/households/{household_id}/members", cfg.middlewareAuthentication(cfg.handlerCreateHouseholdMember))
-	handler.Handle("GET /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMember))
-	handler.Handle("PUT /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerUpdateHouseholdMember))
-	handler.Handle("DELETE /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerDeleteHouseholdMember))
-	handler.Handle("GET /api/households/members/invites", cfg.middlewareAuthentication(cfg.handlerGetMemberInvites))
-	handler.Handle("POST /api/households/members/invites", cfg.middlewareAuthentication(cfg.handlerHandleMemberInvite))
-	handler.Handle("POST /api/households/members/invite", cfg.middlewareAuthentication(cfg.handlerInviteUserToHousehold)) //Don't like this...
+	handler.Handle("GET /api/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMember))
+	handler.Handle("PUT /api/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerUpdateHouseholdMember))
+	handler.Handle("DELETE /api/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerDeleteHouseholdMember))
+	handler.Handle("GET /api/members/invites", cfg.middlewareAuthentication(cfg.handlerGetMemberInvites))
+	handler.Handle("PUT /api/members/invites", cfg.middlewareAuthentication(cfg.handlerHandleMemberInvite))
+	handler.Handle("POST /api/members/invites", cfg.middlewareAuthentication(cfg.handlerInviteUserToHousehold))
 
 	// Admin
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)

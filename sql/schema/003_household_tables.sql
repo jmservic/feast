@@ -232,16 +232,20 @@ DECLARE
 	updater_household_member_info record;
 	household_member_info record;
 BEGIN
-	SELECT id, role, household_id, user_id INTO updater_household_member_info WHERE user_id = updater_id;
+	SELECT id, role, household_id, user_id INTO updater_household_member_info FROM household_members
+	WHERE user_id = updater_id;
+
 	IF NOT FOUND THEN
 		RAISE '% user is not a part of a household', v_user_id
-		USING ERRCODE = insufficient_privilege;
+		USING ERRCODE = 'insufficient_privilege';
 	END IF;
 
-	SELECT id, role, household_id, user_id INTO household_member_info WHERE id = household_member_id;
+	SELECT id, name, role, household_id, user_id INTO household_member_info FROM household_members
+	WHERE id = household_member_id;
+
 	IF NOT FOUND THEN
 		RAISE 'Cannot find a household member with an id of %', household_member_id
-		USING ERRCODE = no_data_found;
+		USING ERRCODE = 'no_data_found';
 	END IF;
 
 
@@ -249,25 +253,31 @@ BEGIN
 		RAISE insufficient_privilege USING DETAIL = 'you cannot update a member in another household';
 	END IF;
 
-	IF updater_household_member_info.role < household_member_info.role THEN
+	IF updater_household_member_info.role > household_member_info.role THEN
 		RAISE insufficient_privilege USING DETAIL = 'you cannot update a member who''s with a higher role';
 	END IF;
 
 	-- set new_member_name and new_role based on whether they are null
-	new_member_name := COALESCE(member_name, household_member_info.name);
-	new_role := COALESCE(new_role, hoseuhold_member_info.role);
+	new_member_name := COALESCE(new_member_name, household_member_info.name);
+	new_role := COALESCE(new_role, household_member_info.role);
 
-	IF updated_household_member_info.role <= new_role THEN -- add in another condition to allow the household owner to give the household to someone else?
-		RAISE insufficient_privilege USING DETAIL = 'you cannot update a member to a role equal or higher than your own.';
+	IF new_role <> household_member_info.role THEN
+		IF updater_id = household_member_info.user_id THEN
+			RAISE insufficient_privilege USING DETAIL = 'you cannot change your own role';
+		END IF;
+
+		IF updater_household_member_info.role >= new_role THEN -- add in another condition to allow the household owner to give the household to someone else?
+			RAISE insufficient_privilege USING DETAIL = 'you cannot update a member to a role equal or higher than your own.';
+		END IF;
 	END IF;
 
-	IF updater_household_member_info.role == household_member_info.role AND updater_household_member_info.id <> household_member_info.id THEN
+	IF updater_household_member_info.role = household_member_info.role AND updater_household_member_info.id <> household_member_info.id THEN
 		RAISE insufficient_privilege USING DETAIL = 'you cannot update a member who''s role is equal to your own.';
 	END IF;
 
 
-	IF v_user_id IS NOT NULL THEN
-		IF updater_id == household_member_info.user_id THEN
+	IF v_user_id IS NOT NULL AND v_user_id <> household_member_info.user_id THEN
+		IF updater_id = household_member_info.user_id THEN
 			RAISE insufficient_privilege USING DETAIL = 'you cannot invite another user in place of yourself';
 		END IF;
 		
@@ -293,14 +303,14 @@ DECLARE
 	household_member_info record;
 BEGIN
 
-	SELECT name, role, user_id INTO STRICT household_member_info WHERE id = household_member_id;
+	SELECT name, role, user_id INTO STRICT household_member_info FROM household_members WHERE id = household_member_id;
 
 	IF member_name <> household_member_info.name OR new_role <> household_member_info.role OR v_user_id <> household_member_info.user_id THEN
 		UPDATE household_members
 		SET name = member_name,
 		role = new_role,
 		user_id = v_user_id,
-		updated_at = GETDATE()
+		updated_at = NOW()
 		WHERE id = household_member_id;
 	END IF;
 END;
@@ -308,17 +318,17 @@ $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
-CREATE OR REPLACE PROCEDURE user_delete_household_member ( user_id uuid, household_member_id uuid ) AS $$
+CREATE OR REPLACE PROCEDURE user_delete_household_member ( v_user_id uuid, household_member_id uuid ) AS $$
 DECLARE
 	user_household_member_info record;
 	household_member_info record;
 BEGIN
 	
-	IF NOT can_delete_member(user_id) THEN
-		RAISE EXCEPTION '% does not have sufficient permission to delete a member from the household', user_id;
+	IF NOT can_delete_member(v_user_id) THEN
+		RAISE EXCEPTION '% does not have sufficient permission to delete a member from the household', v_user_id;
 	END IF;
 
-	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = user_id;
+	SELECT role, household_id INTO user_household_member_info FROM household_members WHERE user_id = v_user_id;
 	IF NOT FOUND THEN
 		RAISE EXCEPTION '% user is not a part of a household', user_id;
 	END IF;
