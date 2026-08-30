@@ -5,7 +5,7 @@ CALL user_create_household_member(@creator_id, @member_name, sqlc.narg('user_id'
 CALL user_delete_household_member($1, $2);
 
 -- name: InviteUserToHousehold :exec
-CALL invite_user_to_household($1, $2, $3, $4);
+CALL invite_user_to_household(@inviter, @invitee, @v_household_id, sqlc.narg('v_household_member_id'));
 
 -- name: AcceptHouseholdInvite :exec
 CALL accept_household_invite(@invitee_id, @household_id);

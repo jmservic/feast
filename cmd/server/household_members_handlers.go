@@ -2,14 +2,17 @@ package main
 
 import (
 	"encoding/json"
+
 	"github.com/google/uuid"
+
 	//	"github.com/jmservic/feast/internal/auth"
+	"net/http"
+	"strings"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jmservic/feast/internal/constants"
 	"github.com/jmservic/feast/internal/database"
 	"github.com/jmservic/feast/internal/dto"
-	"net/http"
-	"strings"
 	// "time"
 )
 
@@ -108,7 +111,36 @@ func (cfg apiConfig) handlerCreateHouseholdMember(w http.ResponseWriter, r *http
 }
 
 func (cfg apiConfig) handlerInviteUserToHousehold(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	params := struct {
+		UserId            uuid.UUID  `json:"user_id"`
+		HouseholdId       uuid.UUID  `json:"household_id"`
+		HouseholdMemberId *uuid.UUID `json:"household_member_id"`
+	}{}
 
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.JsonDecodeErrStr, err)
+		return
+	}
+
+	if params.UserId == uuid.Nil || params.HouseholdId == uuid.Nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, nil)
+		return
+	}
+
+	err := cfg.db.InviteUserToHousehold(r.Context(), database.InviteUserToHouseholdParams{
+		Inviter:            userId,
+		Invitee:            params.UserId,
+		VHouseholdID:       params.HouseholdId,
+		VHouseholdMemberID: params.HouseholdMemberId,
+	})
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdMemberInviteErrStr, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (cfg apiConfig) handlerUpdateHouseholdMember(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
@@ -212,7 +244,7 @@ func (cfg apiConfig) handlerDeleteHouseholdMember(w http.ResponseWriter, r *http
 	}
 
 	err = cfg.db.DeleteHouseholdMember(r.Context(), database.DeleteHouseholdMemberParams{
-		UserID:            userId,
+		VUserID:           userId,
 		HouseholdMemberID: memberId,
 	})
 

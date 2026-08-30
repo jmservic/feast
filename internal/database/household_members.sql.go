@@ -75,12 +75,12 @@ CALL user_delete_household_member($1, $2)
 `
 
 type DeleteHouseholdMemberParams struct {
-	UserID            uuid.UUID
+	VUserID           uuid.UUID
 	HouseholdMemberID uuid.UUID
 }
 
 func (q *Queries) DeleteHouseholdMember(ctx context.Context, arg DeleteHouseholdMemberParams) error {
-	_, err := q.db.Exec(ctx, deleteHouseholdMember, arg.UserID, arg.HouseholdMemberID)
+	_, err := q.db.Exec(ctx, deleteHouseholdMember, arg.VUserID, arg.HouseholdMemberID)
 	return err
 }
 
@@ -173,18 +173,18 @@ CALL invite_user_to_household($1, $2, $3, $4)
 `
 
 type InviteUserToHouseholdParams struct {
-	Inviter           uuid.UUID
-	Invitee           uuid.UUID
-	HouseholdID       uuid.UUID
-	HouseholdMemberID uuid.UUID
+	Inviter            uuid.UUID
+	Invitee            uuid.UUID
+	VHouseholdID       uuid.UUID
+	VHouseholdMemberID *uuid.UUID
 }
 
 func (q *Queries) InviteUserToHousehold(ctx context.Context, arg InviteUserToHouseholdParams) error {
 	_, err := q.db.Exec(ctx, inviteUserToHousehold,
 		arg.Inviter,
 		arg.Invitee,
-		arg.HouseholdID,
-		arg.HouseholdMemberID,
+		arg.VHouseholdID,
+		arg.VHouseholdMemberID,
 	)
 	return err
 }
