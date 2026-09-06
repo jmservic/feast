@@ -28,7 +28,7 @@ CREATE TABLE household_invites (
 	inviter_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
 	invitee_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
 	household_member_id uuid REFERENCES household_members (id) ON DELETE CASCADE,
-	household_id uuid NOT NULL REFERENCES households (id) ON DELETE CASCADE, -- possible remove this since we know the household_id due to the household_member.
+	household_id uuid NOT NULL REFERENCES households (id) ON DELETE CASCADE, 
 	created_at timestamp NOT NULL,
 	UNIQUE(invitee_id, household_id)
 );
@@ -318,6 +318,53 @@ $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
 -- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE user_promote_household_member_to_head ( v_user_id uuid, household_member_id uuid ) AS $$
+DECLARE
+	users_household_member_info record;
+	household_member_info record;
+BEGIN
+	SELECT role, household_id, id INTO STRICT users_household_member_info FROM household_members WHERE user_id = v_user_id;
+	SELECT household_id, user_id INTO STRICT household_member_info FROM household_members WHERE id = household_member_id;
+	
+	IF users_household_member_info.role <> 1 THEN
+		RAISE insufficient_privilege USING DETAIL = 'you must be the head of household to promote another member';
+	END IF;
+
+	IF users_household_member_info.household_id <> household_member_info.household_id THEN
+		RAISE invalid_parameter_value USING DETAIL = 'you cannot promote a member outside of your household';
+	END IF;
+
+	CALL promote_household_member_to_head ( household_member_id );
+END;
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE promote_household_member_to_head ( household_member_id uuid ) AS $$
+DECLARE
+	household_member_info record;
+BEGIN
+	SELECT role, user_id, household_id INTO STRICT household_member_info FROM household_members WHERE id = household_member_id;
+	IF household_member_info.role = 1 THEN
+		RETURN;
+	END IF;
+
+	IF houseohld_member_info.user_id IS NULL THEN
+		RAISE invalid_parameter_value USING DETAIL = 'the promoted household member must be associated with a user';
+	END IF;
+
+	UPDATE household_members
+		SET role = 2
+	WHERE household_id = household_member_info.household_id AND role = 1;
+
+	UPDATE household_members
+		SET role = 1
+	WHERE id = household_member_id;
+END;
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
 CREATE OR REPLACE PROCEDURE user_delete_household_member ( v_user_id uuid, household_member_id uuid ) AS $$
 DECLARE
 	user_household_member_info record;
@@ -406,10 +453,10 @@ BEGIN
 	--check if user is already a part of another household.
 	PERFORM id FROM household_members WHERE user_id = invitee;
 	IF FOUND THEN
-		RAISE EXCEPTION 'Invitee is already a part of a household';
+		RAISE unique_violation USING DETAIL = 'Invitee is already a part of a household';
 	END IF;
 
-	PERFORM household_id FROM household_members WHERE user_id = inviter;
+	SELECT household_id INTO inviter_household_id FROM household_members WHERE user_id = inviter;
 	IF inviter_household_id <> v_household_id THEN
 		RAISE EXCEPTION 'Inviter cannot invite to a household that isn''t their own';
 	END IF;
@@ -494,4 +541,6 @@ DROP PROCEDURE IF EXISTS delete_household_member;
 DROP PROCEDURE IF EXISTS user_delete_household_member;
 DROP PROCEDURE IF EXISTS invite_user_to_household;
 DROP PROCEDURE IF EXISTS accept_household_invite;
+DROP PROCEDURE IF EXISTS user_promote_household_member_to_head; 
+DROP PROCEDURE IF EXISTS promote_household_member_to_head;
 -- Need a leave household 

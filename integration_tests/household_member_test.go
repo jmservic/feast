@@ -86,7 +86,7 @@ func TestCreateHouseholdMember(t *testing.T) {
 			memberName:  "Joey",
 			userId:      &createOtherOwnerResponse.Id,
 			householdId: householdCreationResponse.Id,
-			status:      http.StatusForbidden,
+			status:      http.StatusBadRequest,
 			memberDiff:  0,
 		},
 		{
@@ -796,6 +796,7 @@ func TestDeleteHouseholdMember(t *testing.T) {
 		},
 
 		//Possibly put tests for different roles, yes, we want administrators and heads to only be able to delete.
+		//currently managers are also able to delete.
 	}
 
 	for _, testCase := range testCases {
@@ -907,6 +908,313 @@ func TestGetHouseholdInvites(t *testing.T) {
 	t.Fatalf("Could not find an invite with InviterId: %v, InviteeId: %v, HouseholdId: %v, and HouseholdMemberId: %v",
 		loginResponse.Id, nonMemberLoginResponse.Id, createMemberResponse.Id, householdCreationResponse.Id)
 
+}
+
+func TestInviteUserToHousehold(t *testing.T) {
+	helpers.LoadDotEnv()
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+	secondOwner := UserInfo{
+		name:     "mark",
+		email:    "Mark@example.com",
+		password: "very_secret",
+	}
+	member := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
+	nonMember := UserInfo{
+		name:     "joey",
+		email:    "Joey@example.com",
+		password: "fAcE-PaIn",
+	}
+	secondNonMember := UserInfo{
+		name:     "elijah",
+		email:    "elijah@example.com",
+		password: "secret-very-much",
+	}
+
+	householdName := "Service Family"
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	// create owners
+	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(secondOwner.name, secondOwner.email, secondOwner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// login
+	res = client.LoginUser(owner.email, owner.password)
+	ownerLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(secondOwner.email, secondOwner.password)
+	secondOwnerLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	//create households
+	res = client.CreateHousehold(ownerLoginResponse.Token, householdName)
+	householdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	res = client.CreateHousehold(secondOwnerLoginResponse.Token, "Ecivres family")
+	secondHouseholdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	// create member/nonmembers and login
+	res = client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(nonMember.name, nonMember.email, nonMember.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(secondNonMember.name, secondNonMember.email, secondNonMember.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(member.email, member.password)
+	memberLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(nonMember.email, nonMember.password)
+	nonMemberLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(secondNonMember.email, secondNonMember.password)
+	secondNonMemberLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	//Create member for the member user
+	res = client.CreateHouseholdMember(ownerLoginResponse.Token, member.name, householdCreationResponse.Id,
+		&memberLoginResponse.Id)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	//Accept the invite
+	res = client.HandleInvite(memberLoginResponse.Token, householdCreationResponse.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected status no content, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	//Create a member in the second household
+	res = client.CreateHouseholdMember(secondOwnerLoginResponse.Token, nonMember.name,
+		secondHouseholdCreationResponse.Id, nil)
+	secondHouseholdMemberInfo := helpers.GetResponseObject[dto.HouseholdMemberResponse](
+		t, res, http.StatusCreated)
+
+	//Test Cases:
+	testCases := []struct {
+		testName, inviterToken, inviteeToken string
+		householdId, userId                  uuid.UUID
+		householdMemberId                    *uuid.UUID
+		responseCode, inviteNum              int
+	}{
+		{
+			testName:     "Invite an user not in a household",
+			inviterToken: ownerLoginResponse.Token,
+			inviteeToken: nonMemberLoginResponse.Token,
+			householdId:  householdCreationResponse.Id,
+			userId:       nonMemberLoginResponse.Id,
+			responseCode: http.StatusCreated,
+		},
+		{ //This also serves as inviting the user to multiple households
+			testName:          "Invite a user to a household for a particular member",
+			inviterToken:      secondOwnerLoginResponse.Token,
+			inviteeToken:      nonMemberLoginResponse.Token,
+			householdId:       secondHouseholdCreationResponse.Id,
+			userId:            nonMemberLoginResponse.Id,
+			householdMemberId: &secondHouseholdMemberInfo.Id,
+			responseCode:      http.StatusCreated,
+		},
+		{
+			testName:     "Invite a user already in a household",
+			inviterToken: secondOwnerLoginResponse.Token,
+			inviteeToken: memberLoginResponse.Token,
+			householdId:  secondHouseholdCreationResponse.Id,
+			userId:       memberLoginResponse.Id,
+			responseCode: http.StatusBadRequest,
+		},
+		{
+			testName:     "Invite a user already in the same household",
+			inviterToken: ownerLoginResponse.Token,
+			inviteeToken: memberLoginResponse.Token,
+			householdId:  householdCreationResponse.Id,
+			userId:       memberLoginResponse.Id,
+			responseCode: http.StatusBadRequest,
+		},
+		{
+			testName:     "User unable to invite to the household",
+			inviterToken: memberLoginResponse.Token,
+			inviteeToken: secondNonMemberLoginResponse.Token,
+			householdId:  householdCreationResponse.Id,
+			userId:       secondNonMemberLoginResponse.Id,
+			responseCode: http.StatusForbidden,
+		},
+		{
+			testName:     "Invite an user to a household other than your own",
+			inviterToken: ownerLoginResponse.Token,
+			inviteeToken: secondNonMemberLoginResponse.Token,
+			householdId:  secondHouseholdCreationResponse.Id,
+			userId:       secondNonMemberLoginResponse.Id,
+			responseCode: http.StatusForbidden,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			foundInvite := func(invites []dto.InviteResponse) bool {
+				for _, invite := range invites {
+					if invite.HouseholdId == testCase.householdId {
+						if invite.HouseholdMemberId == nil {
+							if testCase.householdMemberId == nil {
+								return true
+							}
+						} else {
+							if testCase.householdMemberId != nil &&
+								*invite.HouseholdMemberId == *testCase.householdMemberId {
+								return true
+							}
+
+						}
+					}
+				}
+				return false
+			}
+
+			res := client.GetInvites(testCase.inviteeToken)
+			prevInvites := helpers.GetResponseObject[[]dto.InviteResponse](t, res, http.StatusOK)
+
+			res = client.InviteUserToHousehold(testCase.inviterToken, testCase.userId, testCase.householdId,
+				testCase.householdMemberId)
+
+			if res.StatusCode != testCase.responseCode {
+				t.Fatalf("Expected the invite endpoint to return a status code of %d, received %d",
+					testCase.responseCode, res.StatusCode)
+			}
+
+			res = client.GetInvites(testCase.inviteeToken)
+			currInvites := helpers.GetResponseObject[[]dto.InviteResponse](t, res, http.StatusOK)
+
+			if testCase.responseCode == http.StatusCreated {
+				if len(currInvites) != len(prevInvites)+1 {
+					t.Fatalf("Expected the number to be %d, but received %d",
+						len(prevInvites)+1, len(currInvites))
+				}
+
+				found := foundInvite(currInvites)
+
+				if !found {
+					t.Fatalf("Failed to find the corresponding invite")
+				}
+			} else {
+				if len(currInvites) != len(prevInvites) {
+					t.Fatalf("Expected the number of invites to remain the same, but changed from %d to %d",
+						len(prevInvites), len(currInvites))
+				}
+
+				found := foundInvite(currInvites)
+
+				if found {
+					t.Fatalf("Found a corresponding invite when no invite should've been created")
+				}
+			}
+
+		})
+	}
+}
+
+// TODO: Invite a user twice to the household another test.
+func TestInviteUserMultipleTimesToHousehold(t *testing.T) {
+	helpers.LoadDotEnv()
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+	user := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
+
+	householdName := "Service family"
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	//Create Users
+	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(user.name, user.email, user.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	//Login
+	res = client.LoginUser(owner.email, owner.password)
+	ownerLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(user.email, user.password)
+	userLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	// Create the household
+	res = client.CreateHousehold(ownerLoginResponse.Token, householdName)
+	householdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	//Invite the user to the household
+	res = client.InviteUserToHousehold(ownerLoginResponse.Token,
+		userLoginResponse.Id,
+		householdCreationResponse.Id,
+		nil)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected to receive status created, received: %d when creating the initial invite",
+			res.StatusCode)
+	}
+
+	//Invite the user again to the household
+	res = client.InviteUserToHousehold(ownerLoginResponse.Token,
+		userLoginResponse.Id,
+		householdCreationResponse.Id,
+		nil)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Expected to receive status bad request, received: %d when sending the second invite",
+			res.StatusCode)
+	}
+
+	res = client.GetInvites(userLoginResponse.Token)
+	invites := helpers.GetResponseObject[[]dto.InviteResponse](t, res, http.StatusOK)
+
+	if len(invites) != 1 {
+		t.Fatalf("Expected to have only 1 invite, have %d", len(invites))
+	}
+
+	if invites[0].HouseholdId != householdCreationResponse.Id {
+		t.Fatalf("Expected the invite to be for house ID %s, received %s",
+			householdCreationResponse.Id.String(),
+			invites[0].HouseholdId.String())
+	}
 }
 
 func TestHandleHouseholdInvites(t *testing.T) {

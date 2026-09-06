@@ -189,6 +189,20 @@ func (q *Queries) InviteUserToHousehold(ctx context.Context, arg InviteUserToHou
 	return err
 }
 
+const promoteHouseholdMemberToHead = `-- name: PromoteHouseholdMemberToHead :exec
+CALL user_promote_household_member_to_head($1, $2)
+`
+
+type PromoteHouseholdMemberToHeadParams struct {
+	UserID            uuid.UUID
+	HouseholdMemberID uuid.UUID
+}
+
+func (q *Queries) PromoteHouseholdMemberToHead(ctx context.Context, arg PromoteHouseholdMemberToHeadParams) error {
+	_, err := q.db.Exec(ctx, promoteHouseholdMemberToHead, arg.UserID, arg.HouseholdMemberID)
+	return err
+}
+
 const updateHouseholdMember = `-- name: UpdateHouseholdMember :exec
 CALL user_update_household_member($1, $2, $3, $4, $5)
 `

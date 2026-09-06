@@ -30,4 +30,5 @@ WHERE household_id = $1;
 SELECT * FROM household_invites
 WHERE inviter_id = $1 OR invitee_id = $1; 
 
-
+-- name: PromoteHouseholdMemberToHead :exec
+CALL user_promote_household_member_to_head(@user_id, @household_member_id);
