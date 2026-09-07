@@ -307,7 +307,7 @@ func TestUpdateHouseholdMember(t *testing.T) {
 			memberId:     users["member"].memberInfo.Id,
 			role:         2,
 			testName:     "Successfully update role of a member",
-			responseCode: http.StatusOK,
+			responseCode: http.StatusNoContent,
 		},
 		{
 			token:        users["owner"].loginResponse.Token,
@@ -321,7 +321,7 @@ func TestUpdateHouseholdMember(t *testing.T) {
 			memberId:     users["member"].memberInfo.Id,
 			newName:      "Casstadon",
 			testName:     "User's able to successfully update their name",
-			responseCode: http.StatusOK,
+			responseCode: http.StatusNoContent,
 		},
 		{
 			token:        users["member"].loginResponse.Token,
@@ -349,7 +349,7 @@ func TestUpdateHouseholdMember(t *testing.T) {
 			memberId:     users["thirdMember"].memberInfo.Id,
 			testName:     "Able to update a lower member",
 			newName:      "Shawn",
-			responseCode: http.StatusOK,
+			responseCode: http.StatusNoContent,
 		},
 		{
 			token:        users["member"].loginResponse.Token,
@@ -415,7 +415,7 @@ func TestUpdateHouseholdMember(t *testing.T) {
 			res = client.GetHouseholdMember(testCase.token, testCase.memberId)
 			updatedMemberState := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusOK)
 
-			if testCase.responseCode == http.StatusOK {
+			if testCase.responseCode == http.StatusNoContent {
 				if *updatedMemberState.UserId != userId {
 					t.Fatalf("Expected an userId of %v, received %v",
 						userId, *updatedMemberState.UserId)
@@ -728,15 +728,15 @@ func TestDeleteHouseholdMember(t *testing.T) {
 
 	res = client.UpdateHouseholdMember(users["owner"].loginResponse.Token, users["member"].memberInfo.Id,
 		users["member"].loginResponse.Id, users["member"].memberInfo.Name, 2)
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("Error updating member's role, expected StatusOK, got %d", res.StatusCode)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Error updating member's role, expected StatusNoContent, got %d", res.StatusCode)
 	}
 	res.Body.Close()
 
 	res = client.UpdateHouseholdMember(users["owner"].loginResponse.Token, users["thirdMember"].memberInfo.Id,
 		users["thirdMember"].loginResponse.Id, users["thirdMember"].memberInfo.Name, 2)
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("Error updating member's role, expected StatusOK, got %d", res.StatusCode)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Error updating member's role, expected StatusNoContent, got %d", res.StatusCode)
 	}
 	res.Body.Close()
 
@@ -848,8 +848,6 @@ func TestDeleteHouseholdMember(t *testing.T) {
 	}
 }
 
-//TODO: invite to household, duplicate invites to the same user
-
 func TestGetHouseholdInvites(t *testing.T) {
 	helpers.LoadDotEnv()
 	owner := UserInfo{
@@ -907,7 +905,6 @@ func TestGetHouseholdInvites(t *testing.T) {
 
 	t.Fatalf("Could not find an invite with InviterId: %v, InviteeId: %v, HouseholdId: %v, and HouseholdMemberId: %v",
 		loginResponse.Id, nonMemberLoginResponse.Id, createMemberResponse.Id, householdCreationResponse.Id)
-
 }
 
 func TestInviteUserToHousehold(t *testing.T) {
@@ -1140,7 +1137,6 @@ func TestInviteUserToHousehold(t *testing.T) {
 	}
 }
 
-// TODO: Invite a user twice to the household another test.
 func TestInviteUserMultipleTimesToHousehold(t *testing.T) {
 	helpers.LoadDotEnv()
 	owner := UserInfo{
@@ -1413,4 +1409,39 @@ func TestHandleHouseholdInvites(t *testing.T) {
 	}
 }
 
-//TODO: giving the household to someone else.
+// TODO: giving the household to someone else.
+func TestHandlerPromoteHouseholdMemberToHead(t *testing.T) {
+	helpers.LoadDotEnv()
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+	secondOwner := UserInfo{
+		name:     "mark",
+		email:    "Mark@example.com",
+		password: "very_secret",
+	}
+	member := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
+	thirdMember := UserInfo{
+		name:     "sean",
+		email:    "Shawn@example.com",
+		password: "otouto",
+	}
+
+	feastUrl := helpers.GetFeastURL()
+	client := dto.NewClient(t, feastUrl)
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+
+	//Test cases:
+	//member other than the head tries to promote another member
+	//member other than the head tries to promote themselves
+	//member of another household tries to promote a member
+	//non member tries to promote a member
+	//head tries to promote a non existent member
+	//head promotes a member
+}

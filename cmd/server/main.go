@@ -84,6 +84,7 @@ func main() {
 	handler.Handle("GET /api/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMember))
 	handler.Handle("PUT /api/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerUpdateHouseholdMember))
 	handler.Handle("DELETE /api/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerDeleteHouseholdMember))
+	handler.Handle("GET /api/members/{member_id}/promote", cfg.middlewareAuthentication(cfg.handlerPromoteHouseholdMemberToHead))
 	handler.Handle("GET /api/members/invites", cfg.middlewareAuthentication(cfg.handlerGetMemberInvites))
 	handler.Handle("PUT /api/members/invites", cfg.middlewareAuthentication(cfg.handlerHandleMemberInvite))
 	handler.Handle("POST /api/members/invites", cfg.middlewareAuthentication(cfg.handlerInviteUserToHousehold))

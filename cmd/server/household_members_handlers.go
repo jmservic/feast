@@ -181,7 +181,27 @@ func (cfg apiConfig) handlerUpdateHouseholdMember(w http.ResponseWriter, r *http
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (cfg apiConfig) handlerPromoteHouseholdMemberToHead(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	memberId, err := uuid.Parse(r.PathValue("member_id"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
+		return
+	}
+
+	err = cfg.db.PromoteHouseholdMemberToHead(r.Context(), database.PromoteHouseholdMemberToHeadParams{
+		UserID:            userId,
+		HouseholdMemberID: memberId,
+	})
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.PromoteHouseholdMemberToHeadErrStr, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (cfg apiConfig) handlerGetHouseholdMember(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {

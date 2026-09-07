@@ -32,6 +32,7 @@ const (
 	JwtRetrievalErrStr                           string = "error getting JWT"
 	JwtValidationErrStr                          string = "error validating JWT"
 	PasswordHashErrStr                           string = "error hashing the password" // #nosec G101
+	PromoteHouseholdMemberToHeadErrStr           string = "error promoting the household member to the household head"
 	RefreshTokenCheckingErrStr                   string = "error checking refresh token"
 	RefreshTokenCreationErrStr                   string = "error creating a refresh token"
 	RefreshTokenInvalidErrStr                    string = "invalid refresh token"
