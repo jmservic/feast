@@ -349,7 +349,7 @@ BEGIN
 		RETURN;
 	END IF;
 
-	IF houseohld_member_info.user_id IS NULL THEN
+	IF household_member_info.user_id IS NULL THEN
 		RAISE invalid_parameter_value USING DETAIL = 'the promoted household member must be associated with a user';
 	END IF;
 

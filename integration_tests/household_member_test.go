@@ -1412,30 +1412,114 @@ func TestHandleHouseholdInvites(t *testing.T) {
 // TODO: giving the household to someone else.
 func TestHandlerPromoteHouseholdMemberToHead(t *testing.T) {
 	helpers.LoadDotEnv()
-	owner := UserInfo{
-		name:     "jonathan",
-		email:    "Jon@example.com",
-		password: "very-secret",
-	}
-	secondOwner := UserInfo{
-		name:     "mark",
-		email:    "Mark@example.com",
-		password: "very_secret",
-	}
-	member := UserInfo{
-		name:     "cassidy",
-		email:    "Cass@example.com",
-		password: "kalina",
-	}
-	thirdMember := UserInfo{
-		name:     "sean",
-		email:    "Shawn@example.com",
-		password: "otouto",
+
+	users := map[string]struct {
+		UserInfo
+		dto.UserLoginResponse
+		memberInfo dto.HouseholdMemberResponse
+	}{
+		"owner": {
+			UserInfo: UserInfo{
+				name:     "jonathan",
+				email:    "Jon@example.com",
+				password: "very-secret",
+			},
+		},
+		"secondOwner": {
+			UserInfo: UserInfo{
+				name:     "mark",
+				email:    "Mark@example.com",
+				password: "very_secret",
+			},
+		},
+		"member": {
+			UserInfo: UserInfo{
+				name:     "cassidy",
+				email:    "Cass@example.com",
+				password: "kalina",
+			},
+		},
+		"thirdMember": {
+			UserInfo: UserInfo{
+				name:     "sean",
+				email:    "Shawn@example.com",
+				password: "otouto",
+			},
+		},
+		"nonMember": {
+			UserInfo: UserInfo{
+				name:     "Tim",
+				email:    "Jimothy@example.com",
+				password: "oddball",
+			},
+		},
 	}
 
 	feastUrl := helpers.GetFeastURL()
 	client := dto.NewClient(t, feastUrl)
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+
+	// Create the users and login users
+	for key, user := range users {
+		res := client.CreateUser(user.name, user.email, user.password)
+		if res.StatusCode != http.StatusCreated {
+			t.Fatalf("Expected the create user to return status created, but received %d", res.StatusCode)
+		}
+		res.Body.Close()
+
+		res = client.LoginUser(user.email, user.password)
+		user.UserLoginResponse = helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+		users[key] = user
+	}
+
+	// Create the households
+	res := client.CreateHousehold(users["owner"].Token, "Service Family")
+	householdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	res = client.CreateHousehold(users["secondOwner"].Token, "Ecivres Family")
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected the second household response code to be created, but received %d", res.StatusCode)
+	}
+
+	// Invite members
+	memberInfo := users["member"]
+	res = client.CreateHouseholdMember(users["owner"].Token, memberInfo.name, householdCreationResponse.Id, &memberInfo.Id)
+	memberCreationResponse := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	thirdMemberInfo := users["thirdMember"]
+	res = client.CreateHouseholdMember(users["owner"].Token, thirdMemberInfo.name, householdCreationResponse.Id, &thirdMemberInfo.Id)
+	secondMemberCreationResponse := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	res = client.CreateHouseholdMember(users["owner"].Token, "Thrall", householdCreationResponse.Id, nil)
+	nonuserMemberCreationResponse := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	// Accept invites
+	res = client.HandleInvite(users["member"].Token, householdCreationResponse.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the handle invite to return no content, but received %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.HandleInvite(users["thirdMember"].Token, householdCreationResponse.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the handle invite to return no content, but received %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Update 1 member to admin
+	res = client.UpdateHouseholdMember(users["owner"].Token, memberCreationResponse.Id, memberInfo.Id, memberCreationResponse.Name, 2)
+	res.Body.Close()
+
+	// Get the head of household
+	res = client.GetHouseholdMembers(users["owner"].Token, householdCreationResponse.Id)
+	members := helpers.GetResponseObject[[]dto.HouseholdMemberResponse](t, res, http.StatusOK)
+	var householdHead dto.HouseholdMemberResponse
+	for _, member := range members {
+		if member.Role == 1 {
+			householdHead = member
+			break
+		}
+	}
 
 	//Test cases:
 	//member other than the head tries to promote another member
@@ -1444,4 +1528,122 @@ func TestHandlerPromoteHouseholdMemberToHead(t *testing.T) {
 	//non member tries to promote a member
 	//head tries to promote a non existent member
 	//head promotes a member
+	//head promotes themselves
+	testCases := []struct {
+		testName, token       string
+		householdId, memberId uuid.UUID
+		statusCode            int
+		fakeMember            bool
+	}{
+		{
+			testName:    "Member other than the head tries to promote another member",
+			token:       users["member"].Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    secondMemberCreationResponse.Id,
+			statusCode:  http.StatusForbidden,
+		},
+		{
+			testName:    "Member other than the head tries to promote themself",
+			token:       users["member"].Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    memberCreationResponse.Id,
+			statusCode:  http.StatusForbidden,
+		},
+		{
+			testName:    "Member of another household tries to promote a member",
+			token:       users["secondOwner"].Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    memberCreationResponse.Id,
+			statusCode:  http.StatusBadRequest,
+		},
+		{
+			testName:    "non member tries to promote a member",
+			token:       users["nonMember"].Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    memberCreationResponse.Id,
+			statusCode:  http.StatusNotFound,
+		},
+		{
+			testName:    "The Head tries to promote a non-existent member",
+			token:       users["owner"].Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    uuid.New(),
+			statusCode:  http.StatusNotFound,
+			fakeMember:  true,
+		},
+		{
+			testName:    "The head promotes themself",
+			token:       users["owner"].Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    householdHead.Id,
+			statusCode:  http.StatusNoContent,
+		},
+		{
+			testName:    "The head promotes a member that doesn't have a user",
+			token:       users["owner"].Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    nonuserMemberCreationResponse.Id,
+			statusCode:  http.StatusBadRequest,
+		},
+		{
+			testName:    "The head promotes a member",
+			token:       users["owner"].Token,
+			householdId: householdCreationResponse.Id,
+			memberId:    memberCreationResponse.Id,
+			statusCode:  http.StatusNoContent,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			res := client.GetHouseholdMembers(testCase.token, testCase.householdId)
+			members := helpers.GetResponseObject[[]dto.HouseholdMemberResponse](t, res, http.StatusOK)
+			var originalHeadId uuid.UUID
+			for _, member := range members {
+				if member.Role == 1 {
+					originalHeadId = member.Id
+					break
+				}
+			}
+			res = client.PromoteHouseholdMemberToHead(testCase.token, testCase.memberId)
+			if res.StatusCode != testCase.statusCode {
+				t.Fatalf("Expected promote member to head to return %d, received %d",
+					testCase.statusCode, res.StatusCode)
+			}
+			res.Body.Close()
+
+			res = client.GetHouseholdMember(testCase.token, originalHeadId)
+			originalHeadInfo := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusOK)
+
+			if testCase.fakeMember {
+				if originalHeadInfo.Role != 1 {
+					t.Fatal("Expected the original head of household to remain the same")
+				}
+				return
+			}
+			res = client.GetHouseholdMember(testCase.token, testCase.memberId)
+			member := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusOK)
+
+			if member.Id == originalHeadInfo.Id {
+				if member.Role != 1 {
+					t.Fatalf("Expected the household head to remain the same, is actually %d", member.Role)
+				}
+			} else if testCase.statusCode == http.StatusNoContent {
+				if member.Role != 1 {
+					t.Fatalf("Expected the member to be the household head, is actually %d", member.Role)
+				}
+				if originalHeadInfo.Role == 1 {
+					t.Fatal("Expected the original head member to be demoted")
+				}
+			} else {
+				if member.Role == 1 {
+					t.Fatal("Expected the member to not be the household head")
+				}
+
+				if originalHeadInfo.Role != 1 {
+					t.Fatal("Expected the original head of household to remain the same")
+				}
+			}
+		})
+	}
 }
