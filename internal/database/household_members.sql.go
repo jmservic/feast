@@ -189,6 +189,15 @@ func (q *Queries) InviteUserToHousehold(ctx context.Context, arg InviteUserToHou
 	return err
 }
 
+const leaveHousehold = `-- name: LeaveHousehold :exec
+CALL user_leave_household($1)
+`
+
+func (q *Queries) LeaveHousehold(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, leaveHousehold, userID)
+	return err
+}
+
 const promoteHouseholdMemberToHead = `-- name: PromoteHouseholdMemberToHead :exec
 CALL user_promote_household_member_to_head($1, $2)
 `

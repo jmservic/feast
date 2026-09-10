@@ -32,3 +32,6 @@ WHERE inviter_id = $1 OR invitee_id = $1;
 
 -- name: PromoteHouseholdMemberToHead :exec
 CALL user_promote_household_member_to_head(@user_id, @household_member_id);
+
+-- name: LeaveHousehold :exec
+CALL user_leave_household(@user_id);

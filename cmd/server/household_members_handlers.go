@@ -341,3 +341,14 @@ func (cfg apiConfig) handlerHandleMemberInvite(w http.ResponseWriter, r *http.Re
 		return
 	}
 }
+
+func (cfg apiConfig) handlerLeaveHousehold(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	err := cfg.db.LeaveHousehold(r.Context(), userId)
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.LeaveHouseholdErrStr, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

@@ -1409,7 +1409,6 @@ func TestHandleHouseholdInvites(t *testing.T) {
 	}
 }
 
-// TODO: giving the household to someone else.
 func TestHandlerPromoteHouseholdMemberToHead(t *testing.T) {
 	helpers.LoadDotEnv()
 
@@ -1521,14 +1520,6 @@ func TestHandlerPromoteHouseholdMemberToHead(t *testing.T) {
 		}
 	}
 
-	//Test cases:
-	//member other than the head tries to promote another member
-	//member other than the head tries to promote themselves
-	//member of another household tries to promote a member
-	//non member tries to promote a member
-	//head tries to promote a non existent member
-	//head promotes a member
-	//head promotes themselves
 	testCases := []struct {
 		testName, token       string
 		householdId, memberId uuid.UUID
@@ -1642,6 +1633,143 @@ func TestHandlerPromoteHouseholdMemberToHead(t *testing.T) {
 
 				if originalHeadInfo.Role != 1 {
 					t.Fatal("Expected the original head of household to remain the same")
+				}
+			}
+		})
+	}
+}
+
+func TestLeaveHousehold(t *testing.T) {
+	helpers.LoadDotEnv()
+
+	users := map[string]struct {
+		UserInfo
+		dto.UserLoginResponse
+		memberInfo dto.HouseholdMemberResponse
+	}{
+		"owner": {
+			UserInfo: UserInfo{
+				name:     "jonathan",
+				email:    "Jon@example.com",
+				password: "very-secret",
+			},
+		},
+		"member": {
+			UserInfo: UserInfo{
+				name:     "cassidy",
+				email:    "Cass@example.com",
+				password: "kalina",
+			},
+		},
+		"nonMember": {
+			UserInfo: UserInfo{
+				name:     "Tim",
+				email:    "Jimothy@example.com",
+				password: "oddball",
+			},
+		},
+	}
+
+	feastUrl := helpers.GetFeastURL()
+	client := dto.NewClient(t, feastUrl)
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+
+	// Create the users and login users
+	for key, user := range users {
+		res := client.CreateUser(user.name, user.email, user.password)
+		if res.StatusCode != http.StatusCreated {
+			t.Fatalf("Expected the create user to return status created, but received %d", res.StatusCode)
+		}
+		res.Body.Close()
+
+		res = client.LoginUser(user.email, user.password)
+		user.UserLoginResponse = helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+		users[key] = user
+	}
+
+	// Create the households
+	res := client.CreateHousehold(users["owner"].Token, "Service Family")
+	householdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	// Invite the member
+	memberInfo := users["member"]
+	res = client.CreateHouseholdMember(users["owner"].Token, memberInfo.name, householdCreationResponse.Id, &memberInfo.Id)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected to get status created, received %d when creating the member", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// Accept invites
+	res = client.HandleInvite(users["member"].Token, householdCreationResponse.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the handle invite to return no content, but received %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	//test cases
+	//Household head attempts to leave
+	//Member attempts to leave
+	//Non Member attempts to leave
+
+	testCases := []struct {
+		testName, token string
+		householdId     *uuid.UUID
+		userId          uuid.UUID
+		statusCode      int
+	}{
+		{
+			testName:    "Household head attempts to leave",
+			token:       users["owner"].Token,
+			householdId: &householdCreationResponse.Id,
+			userId:      users["owner"].Id,
+			statusCode:  http.StatusBadRequest,
+		},
+		{
+			testName:    "Member attempts to leave household",
+			token:       users["member"].Token,
+			householdId: &householdCreationResponse.Id,
+			userId:      users["member"].Id,
+			statusCode:  http.StatusNoContent,
+		},
+		{
+			testName:   "Non member attempts to leave household",
+			token:      users["nonMember"].Token,
+			userId:     users["nonMember"].Id,
+			statusCode: http.StatusNoContent,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			var member dto.HouseholdMemberResponse
+			if testCase.householdId != nil {
+				res := client.GetHouseholdMembers(testCase.token, *testCase.householdId)
+				members := helpers.GetResponseObject[[]dto.HouseholdMemberResponse](t, res, http.StatusOK)
+				for _, m := range members {
+					if *m.UserId == testCase.userId {
+						member = m
+						break
+					}
+				}
+			}
+
+			res := client.LeaveHousehold(testCase.token)
+			if res.StatusCode != testCase.statusCode {
+				t.Fatalf("Expected the leave household endpoint to return %d, received %d",
+					testCase.statusCode, res.StatusCode)
+			}
+
+			if testCase.householdId != nil {
+				res = client.GetHouseholdMember(testCase.token, member.Id)
+				updatedMember := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusOK)
+				if testCase.statusCode == http.StatusNoContent {
+					if updatedMember.UserId != nil {
+						t.Fatal("Expected the user to be removed from the member")
+					}
+				} else {
+					if *updatedMember.UserId != testCase.userId {
+						t.Fatal("Expected the user to remain connected to the member")
+					}
 				}
 			}
 		})

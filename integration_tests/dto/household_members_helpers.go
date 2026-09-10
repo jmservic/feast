@@ -109,7 +109,7 @@ func (c Client) UpdateHouseholdMember(token string, memberId, newUserId uuid.UUI
 
 	req, err := http.NewRequest(http.MethodPut, c.feastUrl+path, body)
 	if err != nil {
-		c.t.Fatalf("Error occurred whencreating the update request: %v", err)
+		c.t.Fatalf("Error occurred  when creating the update request: %v", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+token)
@@ -126,7 +126,7 @@ func (c Client) DeleteHouseholdMember(token string, memberId uuid.UUID) *http.Re
 	path := constants.HouseholdMembersPath + "/" + memberId.String()
 	req, err := http.NewRequest(http.MethodDelete, c.feastUrl+path, nil)
 	if err != nil {
-		c.t.Fatalf("Error occurred whencreating the update request: %v", err)
+		c.t.Fatalf("Error occurred  when creating the update request: %v", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+token)
@@ -143,7 +143,23 @@ func (c Client) PromoteHouseholdMemberToHead(token string, memberId uuid.UUID) *
 	path := fmt.Sprintf(constants.HouseholdMembersPromotePath, memberId.String())
 	req, err := http.NewRequest(http.MethodGet, c.feastUrl+path, nil)
 	if err != nil {
-		c.t.Fatalf("Error occurred whencreating the update request: %v", err)
+		c.t.Fatalf("Error occurred  when creating the update request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}
+
+func (c Client) LeaveHousehold(token string) *http.Response {
+	req, err := http.NewRequest(http.MethodGet, c.feastUrl+constants.LeaveHouseholdPath, nil)
+	if err != nil {
+		c.t.Fatalf("Error occurred when creating the update request: %v", err)
 	}
 
 	req.Header.Add("Authorization", "Bearer "+token)

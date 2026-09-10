@@ -88,6 +88,7 @@ func main() {
 	handler.Handle("GET /api/members/invites", cfg.middlewareAuthentication(cfg.handlerGetMemberInvites))
 	handler.Handle("PUT /api/members/invites", cfg.middlewareAuthentication(cfg.handlerHandleMemberInvite))
 	handler.Handle("POST /api/members/invites", cfg.middlewareAuthentication(cfg.handlerInviteUserToHousehold))
+	handler.Handle("GET /api/members/leave", cfg.middlewareAuthentication(cfg.handlerLeaveHousehold))
 
 	// Admin
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)

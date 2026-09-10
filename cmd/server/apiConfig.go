@@ -25,7 +25,7 @@ func mapDbErrorToHttpStatusCode(err error) int {
 
 	if errors.As(err, &pgErr) {
 		log.Printf("Database error (%s) message: %s\n", pgErr.Code, pgErr.Detail)
-		if pgErr.Code == "23505" || pgErr.Code == "23503" || pgErr.Code == "22023" {
+		if pgErr.Code == "23505" || pgErr.Code == "23503" || pgErr.Code == "22023" || pgErr.Code == "22004" {
 			code = http.StatusBadRequest
 		}
 		if pgErr.Code == "42501" || pgErr.Code == "P0001" {

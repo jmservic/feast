@@ -22,7 +22,7 @@ CREATE TABLE household_members (
 );
 
 CREATE INDEX ON household_members ( household_id );
-CREATE UNIQUE INDEX ON household_members ( household_id, role) WHERE role = 0;
+CREATE UNIQUE INDEX ON household_members ( household_id, role ) WHERE role = 0;
 
 CREATE TABLE household_invites (
 	inviter_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
@@ -514,6 +514,32 @@ END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
 
+-- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE user_leave_household ( v_user_id uuid ) AS $$
+DECLARE
+	member_info record;
+BEGIN
+	IF v_user_id IS NULL THEN
+		RETURN;
+	END IF;
+
+	SELECT id, role INTO member_info FROM household_members WHERE user_id = v_user_id; 
+
+	IF NOT FOUND THEN
+		RETURN;
+	END IF;
+
+	IF member_info.role = 1 THEN
+		RAISE null_value_not_allowed USING DETAIL = 'The head of household must have an user id. Promote another user before leaving the household';
+	END IF;
+
+	UPDATE household_members
+	SET user_id = NULL
+	WHERE id = member_info.id;
+END;
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+
 -- initial data
 INSERT INTO household_roles (name) 
 VALUES
@@ -543,4 +569,5 @@ DROP PROCEDURE IF EXISTS invite_user_to_household;
 DROP PROCEDURE IF EXISTS accept_household_invite;
 DROP PROCEDURE IF EXISTS user_promote_household_member_to_head; 
 DROP PROCEDURE IF EXISTS promote_household_member_to_head;
+DROP PROCEDURE IF EXISTS user_leave_household;
 -- Need a leave household 
