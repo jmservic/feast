@@ -40,6 +40,9 @@ func TestCreateHousehold(t *testing.T) {
 
 // Add tests for the owner and a random member trying to create a new household (should fail)
 func TestCreateHouseholdForUserInAHousehold(t *testing.T) {
+	// arrange
+	helpers.LoadDotEnv()
+
 	t.FailNow()
 }
 
