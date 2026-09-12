@@ -97,7 +97,11 @@ func (cfg apiConfig) handlerCreateHouseholdMember(w http.ResponseWriter, r *http
 		return
 	}
 
-	tx.Commit(r.Context())
+	err = tx.Commit(r.Context())
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.HouseholdMemberRetrievalByIdErrStr, err)
+		return
+	}
 
 	respondWithJSON(w, http.StatusCreated, dto.HouseholdMemberResources{
 		Id:          newMember.ID,
