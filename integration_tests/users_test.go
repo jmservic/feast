@@ -413,5 +413,229 @@ func TestDeleteUser(t *testing.T) {
 			}
 		})
 	}
-	t.FailNow()
+}
+
+func TestDeleteUsersHouseholdOwnerWithNoMembers(t *testing.T) {
+	helpers.LoadDotEnv()
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	householdName := "Service Family"
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "jon@example.com",
+		password: "very-secret!",
+	}
+
+	// create the owner
+	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	//login Owner
+	res = client.LoginUser(owner.email, owner.password)
+	ownerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
+
+	// create the household
+	res = client.CreateHousehold(ownerTokenRes.Token, householdName)
+	householdInfo := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	res = dto.DeleteUser(t, feastUrl, ownerTokenRes.Token)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected delete user to return status OK, but received: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(owner.email, owner.password)
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Expected the login user to return status unauthorized, but received: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.GetHousehold(householdInfo.Id.String(), ownerTokenRes.Token)
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("Expected get household to return status not found, received: %d", res.StatusCode)
+	}
+	res.Body.Close()
+}
+
+func TestDeleteUsersHouseholdOwnerWithMembers(t *testing.T) {
+	helpers.LoadDotEnv()
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	householdName := "Service Family"
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "jon@example.com",
+		password: "very-secret!",
+	}
+
+	member := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
+
+	secondMember := UserInfo{
+		name:     "joey",
+		email:    "secondLyphe@example.com",
+		password: "face-pain",
+	}
+
+	// create the owner
+	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+
+	res = client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(secondMember.name, secondMember.email, secondMember.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// login as users
+	//Owner
+	res = client.LoginUser(owner.email, owner.password)
+	ownerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(member.email, member.password)
+	memberLoginRes := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(secondMember.email, secondMember.password)
+	secondMemberLoginRes := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	// create the household
+	res = client.CreateHousehold(ownerTokenRes.Token, householdName)
+	householdInfo := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	//Invite, accept and promote members
+	res = client.CreateHouseholdMember(ownerTokenRes.Token, member.name, householdInfo.Id, &memberLoginRes.Id)
+	memberInfo := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	res = client.CreateHouseholdMember(ownerTokenRes.Token, secondMember.name, householdInfo.Id, &secondMemberLoginRes.Id)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected the create household member to return statue created, received %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.HandleInvite(memberLoginRes.Token, householdInfo.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the handle invite to return status no content, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.HandleInvite(secondMemberLoginRes.Token, householdInfo.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the handle invite to return status no content, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.UpdateHouseholdMember(ownerTokenRes.Token, memberInfo.Id, memberLoginRes.Id,
+		memberInfo.Name, 2)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the update household member to return status no content, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = dto.DeleteUser(t, feastUrl, ownerTokenRes.Token)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected delete user to return status OK, but received: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(owner.email, owner.password)
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Expected the login user to return status unauthorized, but received: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.GetHouseholdMember(memberLoginRes.Token, memberInfo.Id)
+	updatedMemberInfo := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusOK)
+	if updatedMemberInfo.Role != 1 {
+		t.Fatalf("Expected the administrator user to now be the household head, but role is %d", updatedMemberInfo.Role)
+	}
+}
+
+func TestDeleteUsersHouseholdMember(t *testing.T) {
+	helpers.LoadDotEnv()
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	householdName := "Service Family"
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "jon@example.com",
+		password: "very-secret!",
+	}
+
+	member := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
+
+	// create the owner
+	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+
+	res = client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	// login as users
+	//Owner
+	res = client.LoginUser(owner.email, owner.password)
+	ownerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(member.email, member.password)
+	memberLoginRes := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	// create the household
+	res = client.CreateHousehold(ownerTokenRes.Token, householdName)
+	householdInfo := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	//Invite and accept member
+	res = client.CreateHouseholdMember(ownerTokenRes.Token, member.name, householdInfo.Id, &memberLoginRes.Id)
+	memberInfo := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	res = client.HandleInvite(memberLoginRes.Token, householdInfo.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the handle invite to return status no content, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = dto.DeleteUser(t, feastUrl, memberLoginRes.Token)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected delete user to return status OK, but received: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(member.email, member.password)
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("Expected the login user to return status unauthorized, but received: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.GetHouseholdMember(memberLoginRes.Token, memberInfo.Id)
+	updatedMemberInfo := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusOK)
+	if updatedMemberInfo.UserId != nil {
+		t.Fatal("Expected the household member to have a nil user id")
+	}
 }

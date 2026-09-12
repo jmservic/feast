@@ -28,7 +28,5 @@ WHERE id = $4
 RETURNING *;
 
 -- name: DeleteUser :exec
-DELETE FROM users
-WHERE id = $1;
-
+call user_delete_user(@user_id);
 

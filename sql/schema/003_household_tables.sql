@@ -201,7 +201,7 @@ CREATE OR REPLACE PROCEDURE create_household_member ( member_name text, v_user_i
 BEGIN
 	IF v_user_id IS NOT NULL THEN
 		-- Is the user already in a household?
-		SELECT household_id 
+		PERFORM household_id 
 		FROM household_members 
 		WHERE user_id = v_user_id;
 
@@ -493,10 +493,11 @@ CREATE OR REPLACE PROCEDURE accept_household_invite ( v_invitee_id uuid, v_house
 DECLARE
 	invite_info record;
 	member_name text;
+	household_member_id uuid;
 BEGIN
 	SELECT * INTO invite_info FROM household_invites WHERE invitee_id = v_invitee_id AND household_id = v_household_id;
 	IF NOT FOUND THEN
-		RAISE EXCEPTION 'No invite found';
+		RAISE no_data_found USING DETAIL = 'No invite found';
 	END IF;
 
 	IF invite_info.household_member_id IS NOT NULL
@@ -505,8 +506,8 @@ BEGIN
 			SET user_id = v_invitee_id
 		WHERE id = invite_info.household_member_id;
 	ELSE 
-		SELECT name INTO member_name FROM users WHERE id = v_invitee_id;
-		CALL create_household_member(member_name, v_invitee_id, household_id);
+		SELECT name INTO STRICT member_name FROM users WHERE id = v_invitee_id;
+		CALL create_household_member(member_name, v_invitee_id, v_household_id, household_member_id);
 	END IF;
 
 	DELETE FROM household_invites WHERE invitee_id = v_invitee_id;
@@ -536,6 +537,37 @@ BEGIN
 	UPDATE household_members
 	SET user_id = NULL
 	WHERE id = member_info.id;
+END;
+$$ LANGUAGE plpgsql;
+-- +goose StatementEnd
+
+-- +goose StatementBegin
+CREATE OR REPLACE PROCEDURE user_delete_user ( v_user_id uuid ) AS $$
+DECLARE
+	member_info record;
+	highest_member_id uuid;
+BEGIN
+	IF v_user_id IS NULL THEN
+		RETURN;
+	END IF;
+
+	SELECT id, role, household_id INTO member_info FROM household_members WHERE user_id = v_user_id; 
+
+	IF FOUND AND member_info.role = 1 THEN
+		SELECT id INTO highest_member_id FROM household_members 
+		WHERE household_id = member_info.household_id AND role <> 1
+		ORDER BY role ASC
+		LIMIT 1;
+
+		IF FOUND THEN
+			CALL user_promote_household_member_to_head(v_user_id, highest_member_id);
+		ELSE
+			CALL user_delete_household(v_user_id, member_info.household_id);
+		END IF;
+	END IF;
+
+	DELETE FROM users
+	WHERE id = v_user_id;
 END;
 $$ LANGUAGE plpgsql;
 -- +goose StatementEnd
@@ -570,4 +602,4 @@ DROP PROCEDURE IF EXISTS accept_household_invite;
 DROP PROCEDURE IF EXISTS user_promote_household_member_to_head; 
 DROP PROCEDURE IF EXISTS promote_household_member_to_head;
 DROP PROCEDURE IF EXISTS user_leave_household;
--- Need a leave household 
+DROP PROCEDURE IF EXISTS user_delete_user;

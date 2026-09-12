@@ -3,6 +3,7 @@ package integration
 import (
 	"github.com/jmservic/feast/integration_tests/dto"
 	"github.com/jmservic/feast/integration_tests/helpers"
+	"io"
 	"net/http"
 	"testing"
 )
@@ -42,8 +43,69 @@ func TestCreateHousehold(t *testing.T) {
 func TestCreateHouseholdForUserInAHousehold(t *testing.T) {
 	// arrange
 	helpers.LoadDotEnv()
+	owner := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+	member := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
 
-	t.FailNow()
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	// create and login users
+	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(owner.email, owner.password)
+	ownerLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(member.email, member.password)
+	memberLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	// create the household
+	res = client.CreateHousehold(ownerLoginResponse.Token, "Service Family")
+	householdCreationResponse := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	// invite the member to the household
+	res = client.InviteUserToHousehold(ownerLoginResponse.Token, memberLoginResponse.Id, householdCreationResponse.Id, nil)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected the invite to return status created, got :%d", res.StatusCode)
+	}
+
+	// accept the invite
+	res = client.HandleInvite(memberLoginResponse.Token, householdCreationResponse.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(res.Body)
+		bodyStr := string(body)
+		t.Fatalf("Expected the handle invite to return no content, got :%d. msg: %s", res.StatusCode, bodyStr)
+
+	}
+
+	//Attempt to create the households
+	res = client.CreateHousehold(ownerLoginResponse.Token, "Evicres Household")
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Expected the create household to return bad request, but received %d", res.StatusCode)
+	}
+
+	res = client.CreateHousehold(memberLoginResponse.Token, "Evicres Household")
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("Expected the create household to return bad request, but received %d", res.StatusCode)
+	}
 }
 
 func TestGetHousehold(t *testing.T) {
@@ -123,10 +185,6 @@ func TestGetHousehold(t *testing.T) {
 	}
 }
 
-// Test cases -
-// Household owner attempts to update - successful
-// Non household member attempts to update - failure
-// household member who isn't the owner attempts to update - failure
 func TestUpdateHousehold(t *testing.T) {
 	helpers.LoadDotEnv()
 
@@ -138,13 +196,23 @@ func TestUpdateHousehold(t *testing.T) {
 		password: "very-secret!",
 	}
 
+	otherOwner := UserInfo{
+		name:     "joey",
+		email:    "Joey@example.com",
+		password: "fAcE-PaIn",
+	}
+
 	nonMember := UserInfo{
 		name:     "daron",
 		email:    "daron@example.com",
 		password: "ab-city",
 	}
 
-	//member := UserInfo{}
+	member := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
 
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
@@ -152,6 +220,18 @@ func TestUpdateHousehold(t *testing.T) {
 
 	// create the owner
 	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(otherOwner.name, otherOwner.email, otherOwner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(member.name, member.email, member.password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status created, got :%d", res.StatusCode)
 	}
@@ -169,6 +249,12 @@ func TestUpdateHousehold(t *testing.T) {
 	res = client.LoginUser(owner.email, owner.password)
 	ownerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
 
+	res = client.LoginUser(otherOwner.email, otherOwner.password)
+	otherOwnerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(member.email, member.password)
+	memberLoginRes := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
 	//non member
 	res = client.LoginUser(nonMember.email, nonMember.password)
 	nonMemberTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
@@ -176,6 +262,29 @@ func TestUpdateHousehold(t *testing.T) {
 	// create the household
 	res = client.CreateHousehold(ownerTokenRes.Token, householdName)
 	householdInfo := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	res = client.CreateHousehold(otherOwnerTokenRes.Token, "Evicres Family")
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected household creation to return status created, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	//Invite, accept and promote member
+	res = client.CreateHouseholdMember(ownerTokenRes.Token, member.name, householdInfo.Id, &memberLoginRes.Id)
+	memberInfo := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	res = client.HandleInvite(memberLoginRes.Token, householdInfo.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the handle invite to return status no content, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.UpdateHouseholdMember(ownerTokenRes.Token, memberInfo.Id, memberLoginRes.Id,
+		memberInfo.Name, 2)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the update household member to return status no content, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
 
 	testCases := []struct {
 		newName, token, testName string
@@ -193,6 +302,20 @@ func TestUpdateHousehold(t *testing.T) {
 			newName:       "Fradulent! Family",
 			token:         nonMemberTokenRes.Token,
 			testName:      "Failed update by non member",
+			householdInfo: &householdInfo,
+			responseCode:  http.StatusForbidden,
+		},
+		{
+			newName:       "LET'S GOOO FAM",
+			token:         memberLoginRes.Token,
+			testName:      "Failed update by administrator member",
+			householdInfo: &householdInfo,
+			responseCode:  http.StatusForbidden,
+		},
+		{
+			newName:       "I own this household now",
+			token:         otherOwnerTokenRes.Token,
+			testName:      "Failed update by another household owner",
 			householdInfo: &householdInfo,
 			responseCode:  http.StatusForbidden,
 		},
@@ -231,7 +354,6 @@ func TestUpdateHousehold(t *testing.T) {
 			}
 		})
 	}
-	t.FailNow()
 }
 
 // Test cases -
@@ -249,13 +371,23 @@ func TestDeleteHousehold(t *testing.T) {
 		password: "very-secret!",
 	}
 
+	otherOwner := UserInfo{
+		name:     "joey",
+		email:    "Joey@example.com",
+		password: "fAcE-PaIn",
+	}
+
 	nonMember := UserInfo{
 		name:     "daron",
 		email:    "daron@example.com",
 		password: "ab-city",
 	}
 
-	//member := UserInfo{}
+	member := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
 
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
@@ -263,6 +395,18 @@ func TestDeleteHousehold(t *testing.T) {
 
 	// create the owner
 	res := client.CreateUser(owner.name, owner.email, owner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(otherOwner.name, otherOwner.email, otherOwner.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.CreateUser(member.name, member.email, member.password)
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Expected status created, got :%d", res.StatusCode)
 	}
@@ -280,6 +424,12 @@ func TestDeleteHousehold(t *testing.T) {
 	res = client.LoginUser(owner.email, owner.password)
 	ownerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
 
+	res = client.LoginUser(otherOwner.email, otherOwner.password)
+	otherOwnerTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
+
+	res = client.LoginUser(member.email, member.password)
+	memberLoginRes := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
 	//non member
 	res = client.LoginUser(nonMember.email, nonMember.password)
 	nonMemberTokenRes := helpers.GetResponseObject[dto.TokenResponse](t, res, http.StatusOK)
@@ -287,6 +437,29 @@ func TestDeleteHousehold(t *testing.T) {
 	// create the household
 	res = client.CreateHousehold(ownerTokenRes.Token, householdName)
 	householdInfo := helpers.GetResponseObject[dto.HouseholdResponse](t, res, http.StatusCreated)
+
+	res = client.CreateHousehold(otherOwnerTokenRes.Token, "Evicres Family")
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected household creation to return status created, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	//Invite, accept and promote member
+	res = client.CreateHouseholdMember(ownerTokenRes.Token, member.name, householdInfo.Id, &memberLoginRes.Id)
+	memberInfo := helpers.GetResponseObject[dto.HouseholdMemberResponse](t, res, http.StatusCreated)
+
+	res = client.HandleInvite(memberLoginRes.Token, householdInfo.Id, true)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the handle invite to return status no content, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.UpdateHouseholdMember(ownerTokenRes.Token, memberInfo.Id, memberLoginRes.Id,
+		memberInfo.Name, 2)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected the update household member to return status no content, received :%d", res.StatusCode)
+	}
+	res.Body.Close()
 
 	testCases := []struct {
 		token, testName string
@@ -296,6 +469,18 @@ func TestDeleteHousehold(t *testing.T) {
 		{
 			token:         nonMemberTokenRes.Token,
 			testName:      "Failed delete by non member",
+			householdInfo: &householdInfo,
+			responseCode:  http.StatusForbidden,
+		},
+		{
+			token:         memberLoginRes.Token,
+			testName:      "Failed delete by administrator member",
+			householdInfo: &householdInfo,
+			responseCode:  http.StatusForbidden,
+		},
+		{
+			token:         otherOwnerTokenRes.Token,
+			testName:      "Failed delete by other household owner",
 			householdInfo: &householdInfo,
 			responseCode:  http.StatusForbidden,
 		},
@@ -333,5 +518,4 @@ func TestDeleteHousehold(t *testing.T) {
 
 		})
 	}
-	t.FailNow()
 }
