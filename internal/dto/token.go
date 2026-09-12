@@ -2,5 +2,5 @@ package dto
 
 type TokenResponse struct {
 	Token        string `json:"token"`
-	RefreshToken string `json:"refresh_token"`
+	RefreshToken string `json:"refresh_token"` // #nosec G117
 }

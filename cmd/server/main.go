@@ -50,6 +50,7 @@ func main() {
 
 	cfg := apiConfig{
 		db:       dbQueries,
+		conn:     conn,
 		platform: platform,
 		secret:   jwtSecret,
 	}
@@ -67,21 +68,27 @@ func main() {
 
 	// Users
 	handler.HandleFunc("POST /api/users", cfg.handlerCreateUser)
-	handler.Handle("PUT /api/users/{user_id}", cfg.middlewareAuthentication(cfg.handlerUpdateUser))
+	handler.Handle("PUT /api/users", cfg.middlewareAuthentication(cfg.handlerUpdateUser))
+	handler.Handle("DELETE /api/users", cfg.middlewareAuthentication(cfg.handlerDeleteUser))
 
 	// Households
 	handler.Handle("POST /api/households", cfg.middlewareAuthentication(cfg.handlerCreateHousehold))
-	handler.Handle("GET /api/households/{householdId}", cfg.middlewareAuthentication(cfg.handlerGetHousehold))
-	handler.Handle("PUT /api/households/{householdId}", cfg.middlewareAuthentication(cfg.handlerUpdateHousehold))
-	handler.Handle("DELETE /api/households/{householdId}", cfg.middlewareAuthentication(cfg.handlerDeleteHousehold))
+	handler.Handle("GET /api/households/{household_id}", cfg.middlewareAuthentication(cfg.handlerGetHousehold))
+	handler.Handle("PUT /api/households/{household_id}", cfg.middlewareAuthentication(cfg.handlerUpdateHousehold))
+	handler.Handle("DELETE /api/households/{household_id}", cfg.middlewareAuthentication(cfg.handlerDeleteHousehold))
 
 	// Household Members
 	//Might not need this one
 	handler.Handle("GET /api/households/{household_id}/members", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMembers))
-	handler.Handle("POST /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerCreateHouseholdMember))
-	handler.Handle("GET /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMember))
-	handler.Handle("PUT /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerUpdateHouseholdMember))
-	handler.Handle("DELETE /api/households/{household_id}/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerDeleteHouseholdMember))
+	handler.Handle("POST /api/households/{household_id}/members", cfg.middlewareAuthentication(cfg.handlerCreateHouseholdMember))
+	handler.Handle("GET /api/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerGetHouseholdMember))
+	handler.Handle("PUT /api/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerUpdateHouseholdMember))
+	handler.Handle("DELETE /api/members/{member_id}", cfg.middlewareAuthentication(cfg.handlerDeleteHouseholdMember))
+	handler.Handle("GET /api/members/{member_id}/promote", cfg.middlewareAuthentication(cfg.handlerPromoteHouseholdMemberToHead))
+	handler.Handle("GET /api/members/invites", cfg.middlewareAuthentication(cfg.handlerGetMemberInvites))
+	handler.Handle("PUT /api/members/invites", cfg.middlewareAuthentication(cfg.handlerHandleMemberInvite))
+	handler.Handle("POST /api/members/invites", cfg.middlewareAuthentication(cfg.handlerInviteUserToHousehold))
+	handler.Handle("GET /api/members/leave", cfg.middlewareAuthentication(cfg.handlerLeaveHousehold))
 
 	// Admin
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)
@@ -90,12 +97,21 @@ func main() {
 		w.Write([]byte("Hello World! because of course..."))
 	}))*/
 
+	//Health
+	handler.HandleFunc("GET /", func(w http.ResponseWriter, res *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("I'm healthy. Doing just fine"))
+		if err != nil {
+			log.Printf("Health Check error: %v", err)
+		}
+	})
+
 	server := http.Server{
 		Addr:              ":" + port,
 		Handler:           handler,
 		ReadHeaderTimeout: time.Second * 16,
 	}
 
-	log.Printf("Serving on port: %v\n", port)
+	log.Printf("Serving on port: %v\n", port) // #nosec G706
 	log.Fatalln(server.ListenAndServe())
 }

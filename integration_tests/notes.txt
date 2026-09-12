@@ -1,0 +1,1 @@
+Remember to remove invites if anything of note happens to the inviter, invitee, or the household_member that it is referring to

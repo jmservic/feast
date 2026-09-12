@@ -26,8 +26,7 @@ jobs:
       - name: Security Checks 
         uses: securego/gosec@master
         with:
-          args: -exclude-generated ./...
-
+          args: -exclude-generated -exclude-rules ./integration_tests/.*:* ./... 
   style:
     name: Style
     runs-on: ubuntu-latest

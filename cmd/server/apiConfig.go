@@ -3,15 +3,18 @@ package main
 import (
 	"errors"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmservic/feast/internal/auth"
 	"github.com/jmservic/feast/internal/constants"
 	"github.com/jmservic/feast/internal/database"
+	"log"
 	"net/http"
 )
 
 type apiConfig struct {
 	db       *database.Queries
+	conn     *pgx.Conn
 	platform string
 	secret   string
 }
@@ -19,9 +22,21 @@ type apiConfig struct {
 func mapDbErrorToHttpStatusCode(err error) int {
 	pgErr := &pgconn.PgError{}
 	code := http.StatusInternalServerError
+
 	if errors.As(err, &pgErr) {
-		if pgErr.Code == "23505" || pgErr.Code == "23503" {
+		log.Printf("Database error (%s) message: %s\n", pgErr.Code, pgErr.Detail)
+		if pgErr.Code == "23505" || pgErr.Code == "23503" || pgErr.Code == "22023" || pgErr.Code == "22004" {
 			code = http.StatusBadRequest
+		}
+		if pgErr.Code == "42501" || pgErr.Code == "P0001" {
+			code = http.StatusForbidden
+		}
+		if pgErr.Code == "P0002" {
+			code = http.StatusNotFound
+		}
+	} else {
+		if err == pgx.ErrNoRows {
+			code = http.StatusNotFound
 		}
 	}
 
