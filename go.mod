@@ -1,6 +1,6 @@
 module github.com/jmservic/feast
 
-go 1.27.1
+go 1.27.0
 
 require (
 	github.com/alexedwards/argon2id v1.0.0 // indirect
