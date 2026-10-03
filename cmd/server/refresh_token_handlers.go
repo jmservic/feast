@@ -28,7 +28,7 @@ func (cfg apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if isExpired.Bool {
+	if *isExpired {
 		respondWithError(w, http.StatusUnauthorized, constants.RefreshTokenInvalidErrStr, nil)
 		return
 	}

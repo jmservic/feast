@@ -9,6 +9,10 @@ UNIT_TEST_ARGS := $(addsuffix /...,$(SRC_FOLDERS_PATHS))
 SRC_FILES := $(foreach folder,$(SRC_FOLDERS_PATHS), \
 				 $(shell find $(folder) -name *.go))
 
+ifdef RUN_ARGS
+	INTEGRATION_TEST_ARGS := -run $(RUN_ARGS)
+endif
+
 define get-server-pid
 	ps | awk '/$(SERVER_EXE)/ {print $$1}'
 endef
@@ -49,7 +53,7 @@ integration: start
 		echo "Waiting for Server to start..."; \
 		sleep 1; \
 	done;
-	-go test ./integration_tests/...
+	-go test ./integration_tests/... $(INTEGRATION_TEST_ARGS)
 ifndef SERVER_PID
 	kill $(shell $(get-server-pid))
 endif

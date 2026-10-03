@@ -46,6 +46,18 @@ func main() {
 		log.Fatalf("Error opening the database: %s", err)
 	}
 
+	t, err := conn.LoadType(context.Background(), "serving_info") // serving_info type
+	if err != nil {
+		log.Fatalf("Error registering the serving_info type: %s", err)
+	}
+	conn.TypeMap().RegisterType(t)
+
+	t, err = conn.LoadType(context.Background(), "_serving_info") // serving_info[] type
+	if err != nil {
+		log.Fatalf("Error registering the serving_info array type: %s", err)
+	}
+	conn.TypeMap().RegisterType(t)
+
 	dbQueries := database.New(conn)
 
 	cfg := apiConfig{
@@ -89,6 +101,13 @@ func main() {
 	handler.Handle("PUT /api/members/invites", cfg.middlewareAuthentication(cfg.handlerHandleMemberInvite))
 	handler.Handle("POST /api/members/invites", cfg.middlewareAuthentication(cfg.handlerInviteUserToHousehold))
 	handler.Handle("GET /api/members/leave", cfg.middlewareAuthentication(cfg.handlerLeaveHousehold))
+
+	// Ingredients
+	handler.Handle("GET /api/ingredients", cfg.middlewareAuthentication(cfg.handlerGetIngredients))
+	handler.Handle("GET /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerGetIngredient))
+	handler.Handle("POST /api/ingredients", cfg.middlewareAuthentication(cfg.handlerCreateIngredient))
+	handler.Handle("PUT /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerUpdateIngredient))
+	handler.Handle("DELETE /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerDeleteIngredient))
 
 	// Admin
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)

@@ -6,8 +6,10 @@ import (
 
 const (
 	BeginTransactionErrStr                       string = "error creating a database transaction"
+	CommitTransactionErrStr                      string = "error commiting the database transaction"
 	EmptyPasswordErrStr                          string = "password field cannot be empty"
 	EmptyParameterErrStr                         string = "a required parameter is empty"
+	GetIngredientServingsErrStr                  string = "error getting ingredient servings"
 	GetNewInstanceErrStr                         string = "error getting the newly created instance"
 	HashCheckErrStr                              string = "error comparing hashes"
 	HandleMemberInviteActionErrStr               string = "Invalid string representing invite action, must be either accept or decline"
@@ -23,7 +25,12 @@ const (
 	HouseholdRetrievalByIdErrStr                 string = "error retrieving the household by id"
 	HouseholdUpdateErrStr                        string = "error updating a household"
 	MemberInviteRetrievalByUserErrStr            string = "error getting member invites by user ID"
+	IngredientCreationErrStr                     string = "error creating a new ingredient"
+	InvalidCalorieErrStr                         string = "calorie value cannot be negative"
+	InvalidAmountErrStr                          string = "amount value must be greater than zero"
 	InvalidCredentialsErrStr                     string = "invalid credentials" // #nosec G101
+	InvalidMultipleServingsErrStr                string = "serving quantity must be greater than zero for multiple servings"
+	InvalidServingsErrStr                        string = "serving quantity cannot be negative"
 	InvalidUUIDErrStr                            string = "error parsing uuid string"
 	InviteAcceptErrStr                           string = "error accepting household invitation"
 	InviteDeclineErrStr                          string = "error declining household invitation"
@@ -40,6 +47,7 @@ const (
 	RefreshTokenRetrievalErrStr                  string = "error getting refresh token"
 	RefreshTokenRevokeErrStr                     string = "error revoking refresh token"
 	RefreshTokenStorageErrStr                    string = "error storing a refresh token"
+	ServingsCreationErrStr                       string = "error creating list of servings for an ingredient"
 	UserCreationErrStr                           string = "error creating a new user"
 	UserIdRetrievalErrStr                        string = "error getting user id"
 	UserUpdateErrStr                             string = "error updating user information"
