@@ -10,14 +10,119 @@ import (
 	"github.com/shopspring/decimal"
 	"net/http"
 	"slices"
+	"strconv"
+	"sync"
 )
 
 func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	query := r.FormValue("q")
 
+	storedIngredients, err := cfg.db.GetIngredientsByQuery(r.Context(), database.GetIngredientsByQueryParams{
+		Query:  query,
+		UserID: &userId,
+	})
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetIngredientsErrStr, err)
+		return
+	}
+
+	ingredients := make([]dto.Ingredient, 0, len(storedIngredients))
+	ingredientIndexes := make(map[int64]int, len(storedIngredients))
+	ingredientIds := make([]int, 0, len(storedIngredients))
+
+	for index, storedIngredient := range storedIngredients {
+		ingredient := dto.Ingredient{
+			Amount:        decimal.NewFromInt(1),
+			Name:          storedIngredient.Name,
+			Fats:          storedIngredient.Fats,
+			Carbohydrates: storedIngredient.Carbohydrates,
+			Protein:       storedIngredient.Protein,
+			Unittype:      dto.Measurement(storedIngredient.UnitType),
+			Id:            storedIngredient.ID,
+		}
+
+		ingredients = append(ingredients, ingredient)
+		ingredientIds = append(ingredientIds, int(ingredient.Id))
+		ingredientIndexes[ingredient.Id] = index
+	}
+
+	servings, err := cfg.db.GetIngredientsServingsByIds(r.Context(), ingredientIds)
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetIngredientsServingsErrStr, err)
+		return
+	}
+
+	for _, dbServing := range servings {
+		index := ingredientIndexes[dbServing.IngredientID]
+		serving := dto.ServingInfo{
+			Id:       dbServing.ID,
+			Name:     dbServing.Name,
+			Quantity: dbServing.Quantity,
+		}
+		ingredients[index].Servings = append(ingredients[index].Servings, serving)
+	}
+
+	respondWithJSON(w, http.StatusOK, ingredients)
 }
 
 func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	ingredientId, err := strconv.ParseInt(r.PathValue("ingredient_id"), 10, 64)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidIntStringErrStr, err)
+		return
+	}
 
+	wg := sync.WaitGroup{}
+	errs := []error{}
+	ingredient := dto.Ingredient{}
+
+	wg.Go(func() {
+		storedIngredient, err := cfg.db.GetIngredientById(r.Context(), ingredientId)
+		if err != nil {
+			errs = append(errs, err)
+			return
+		}
+
+		ingredient.Amount = decimal.NewFromInt(1)
+		ingredient.Name = storedIngredient.Name
+		ingredient.Fats = storedIngredient.Fats
+		ingredient.Carbohydrates = storedIngredient.Carbohydrates
+		ingredient.Protein = storedIngredient.Protein
+		ingredient.Unittype = dto.Measurement(storedIngredient.UnitType)
+		ingredient.UserId = storedIngredient.UserID
+		ingredient.Id = storedIngredient.ID
+	})
+
+	wg.Go(func() {
+		dbServings, err := cfg.db.GetIngredientsServingsById(r.Context(), ingredientId)
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		servings := make([]dto.ServingInfo, 0, len(dbServings))
+
+		for _, serving := range dbServings {
+			servings = append(servings, dto.ServingInfo{
+				Name:     serving.Name,
+				Quantity: serving.Quantity,
+				Id:       serving.ID,
+			})
+		}
+
+		ingredient.Servings = servings
+	})
+
+	wg.Wait()
+
+	//TODO: handle this in a way that utilizes both errors
+	if len(errs) > 0 {
+		respondWithError(w, mapDbErrorToHttpStatusCode(errs[0]), constants.GetIngredientErrStr, err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ingredient)
 }
 
 func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
@@ -38,6 +143,21 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 		respondWithError(w, http.StatusBadRequest, constants.InvalidAmountErrStr, nil)
 		return
 
+	}
+
+	if newIngredient.Protein.IsNegative() {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidProteinErrStr, nil)
+		return
+	}
+
+	if newIngredient.Fats.IsNegative() {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidFatsErrStr, nil)
+		return
+	}
+
+	if newIngredient.Carbohydrates.IsNegative() {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidCarbohydratesErrStr, nil)
+		return
 	}
 
 	if newIngredient.Calories.IsNegative() {

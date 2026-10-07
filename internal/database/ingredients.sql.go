@@ -24,7 +24,7 @@ VALUES(
 	$6,
 	$7,
 	$8
-) returning id, name, fats, carbohydrates, protein, calories, unit_type, brand, user_id, search_vector
+) RETURNING id, name, fats, carbohydrates, protein, calories, unit_type, brand, user_id, search_vector
 `
 
 type CreateIngredientParams struct {
@@ -79,6 +79,117 @@ func (q *Queries) CreateIngredientServings(ctx context.Context, arg CreateIngred
 	return err
 }
 
+const getIngredientById = `-- name: GetIngredientById :one
+SELECT 
+	id,
+	name,
+	fats,
+	carbohydrates,
+	protein,
+	calories,
+	unit_type,
+	brand,
+	user_id
+FROM ingredients
+WHERE id = $1
+`
+
+type GetIngredientByIdRow struct {
+	ID            int64
+	Name          string
+	Fats          decimal.Decimal
+	Carbohydrates decimal.Decimal
+	Protein       decimal.Decimal
+	Calories      decimal.Decimal
+	UnitType      bool
+	Brand         *string
+	UserID        *uuid.UUID
+}
+
+func (q *Queries) GetIngredientById(ctx context.Context, id int64) (GetIngredientByIdRow, error) {
+	row := q.db.QueryRow(ctx, getIngredientById, id)
+	var i GetIngredientByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Fats,
+		&i.Carbohydrates,
+		&i.Protein,
+		&i.Calories,
+		&i.UnitType,
+		&i.Brand,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getIngredientsByQuery = `-- name: GetIngredientsByQuery :many
+SELECT
+	id,
+	name,
+	fats,
+	carbohydrates,
+	protein,
+	calories,
+	unit_type,
+	brand,
+	user_id,
+	ts_rank(search_vector, query) AS rank
+FROM ingredients, plainto_tsquery($1) query
+WHERE search_vector @@ query AND user_id = $2
+ORDER BY rank DESC
+LIMIT 50
+`
+
+type GetIngredientsByQueryParams struct {
+	Query  string
+	UserID *uuid.UUID
+}
+
+type GetIngredientsByQueryRow struct {
+	ID            int64
+	Name          string
+	Fats          decimal.Decimal
+	Carbohydrates decimal.Decimal
+	Protein       decimal.Decimal
+	Calories      decimal.Decimal
+	UnitType      bool
+	Brand         *string
+	UserID        *uuid.UUID
+	Rank          float32
+}
+
+func (q *Queries) GetIngredientsByQuery(ctx context.Context, arg GetIngredientsByQueryParams) ([]GetIngredientsByQueryRow, error) {
+	rows, err := q.db.Query(ctx, getIngredientsByQuery, arg.Query, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetIngredientsByQueryRow
+	for rows.Next() {
+		var i GetIngredientsByQueryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Fats,
+			&i.Carbohydrates,
+			&i.Protein,
+			&i.Calories,
+			&i.UnitType,
+			&i.Brand,
+			&i.UserID,
+			&i.Rank,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getIngredientsServingsById = `-- name: GetIngredientsServingsById :many
 SELECT 
 	name,
@@ -104,6 +215,48 @@ func (q *Queries) GetIngredientsServingsById(ctx context.Context, ingredientID i
 	for rows.Next() {
 		var i GetIngredientsServingsByIdRow
 		if err := rows.Scan(&i.Name, &i.Quantity, &i.ID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getIngredientsServingsByIds = `-- name: GetIngredientsServingsByIds :many
+SELECT 
+	name,
+	quantity,
+	id,
+	ingredient_id
+FROM ingredient_servings
+WHERE ingredient_id IN ($1::int[])
+`
+
+type GetIngredientsServingsByIdsRow struct {
+	Name         string
+	Quantity     decimal.Decimal
+	ID           int16
+	IngredientID int64
+}
+
+func (q *Queries) GetIngredientsServingsByIds(ctx context.Context, ingredientIds []int) ([]GetIngredientsServingsByIdsRow, error) {
+	rows, err := q.db.Query(ctx, getIngredientsServingsByIds, ingredientIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetIngredientsServingsByIdsRow
+	for rows.Next() {
+		var i GetIngredientsServingsByIdsRow
+		if err := rows.Scan(
+			&i.Name,
+			&i.Quantity,
+			&i.ID,
+			&i.IngredientID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

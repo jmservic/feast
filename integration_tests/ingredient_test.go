@@ -53,6 +53,7 @@ func TestCreateIngredient(t *testing.T) {
 	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
 	token := loginResponse.Token
 
+	//Failing cases: No Name, 0 amount, negative amount, negative protein, fats, carbs, calories, no servings
 	testCases := []struct {
 		testName   string
 		params     map[dto.IngredientKeys]any
@@ -79,11 +80,11 @@ func TestCreateIngredient(t *testing.T) {
 			statusCode: http.StatusCreated,
 		},
 		{
-			testName: "Successfully creates inredient with all fields and amount greater than 1",
+			testName: "Successfully creates ingredient with all fields and amount greater than 1",
 			params: map[dto.IngredientKeys]any{
 				dto.IngredientName:     "Organic Whole Milk",
 				dto.IngredientProtein:  8,
-				dto.IngredientFats:     8,
+				dto.IngredientFats:     0.5,
 				dto.IngredientCarbs:    13,
 				dto.IngredientCalories: 160,
 				dto.IngredientBrand:    "Horizon Organic",
@@ -109,6 +110,250 @@ func TestCreateIngredient(t *testing.T) {
 				},
 			},
 			statusCode: http.StatusCreated,
+		},
+		{
+			testName: "Successfully creates ingredient with missing protein, fats, carbs, and calories",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Water",
+				dto.IngredientAmount:   240,
+				dto.IngredientUnitType: dto.Volume,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "Cups",
+						Quantity: decimal.NewFromInt(240),
+					},
+				},
+			},
+			statusCode: http.StatusCreated,
+		},
+		{
+			testName: "Fails to create ingredient with no name",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientProtein:  3,
+				dto.IngredientCarbs:    36,
+				dto.IngredientCalories: 160,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   45,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(45),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with empty name",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "",
+				dto.IngredientProtein:  3,
+				dto.IngredientCarbs:    36,
+				dto.IngredientCalories: 160,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   45,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(45),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with negative protein",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  -8,
+				dto.IngredientFats:     0.5,
+				dto.IngredientCarbs:    23,
+				dto.IngredientCalories: 130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   122,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(122),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with negative fats",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  8,
+				dto.IngredientFats:     -0.5,
+				dto.IngredientCarbs:    23,
+				dto.IngredientCalories: 130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   122,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(122),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with negative carbs",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  8,
+				dto.IngredientFats:     0.5,
+				dto.IngredientCarbs:    -23,
+				dto.IngredientCalories: 130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   122,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(122),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with negative calories",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  8,
+				dto.IngredientFats:     0.5,
+				dto.IngredientCarbs:    23,
+				dto.IngredientCalories: -130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   122,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(122),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with missing amount",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  8,
+				dto.IngredientFats:     0.5,
+				dto.IngredientCarbs:    23,
+				dto.IngredientCalories: 130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(122),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with zero amount",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  8,
+				dto.IngredientFats:     0.5,
+				dto.IngredientCarbs:    23,
+				dto.IngredientCalories: 130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   0,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(122),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with negative amount",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  8,
+				dto.IngredientFats:     0.5,
+				dto.IngredientCarbs:    23,
+				dto.IngredientCalories: 130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   -122,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(122),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with missing servings",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  8,
+				dto.IngredientFats:     0.5,
+				dto.IngredientCarbs:    23,
+				dto.IngredientCalories: 130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   122,
+				dto.IngredientUnitType: dto.Weight,
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with empty servings",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  8,
+				dto.IngredientFats:     0.5,
+				dto.IngredientCarbs:    23,
+				dto.IngredientCalories: 130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   122,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{},
+			},
+			statusCode: http.StatusBadRequest,
+		},
+		{
+			testName: "Fails to create ingredient with multiple servings when 1 has zero quantity",
+			params: map[dto.IngredientKeys]any{
+				dto.IngredientName:     "Black Beans",
+				dto.IngredientProtein:  8,
+				dto.IngredientFats:     0.5,
+				dto.IngredientCarbs:    23,
+				dto.IngredientCalories: 130,
+				dto.IngredientBrand:    "Food Lion",
+				dto.IngredientAmount:   122,
+				dto.IngredientUnitType: dto.Weight,
+				dto.IngredientServings: []dto.ServingInfo{
+					{
+						Name:     "grams",
+						Quantity: decimal.Zero,
+					},
+					{
+						Name:     "ounces",
+						Quantity: decimal.NewFromInt(28),
+					},
+				},
+			},
+			statusCode: http.StatusBadRequest,
 		},
 	}
 
@@ -235,5 +480,4 @@ func TestCreateIngredient(t *testing.T) {
 			}
 		})
 	}
-
 }
