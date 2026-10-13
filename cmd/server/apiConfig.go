@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jmservic/feast/internal/auth"
 	"github.com/jmservic/feast/internal/constants"
 	"github.com/jmservic/feast/internal/database"
@@ -14,7 +15,7 @@ import (
 
 type apiConfig struct {
 	db       *database.Queries
-	conn     *pgx.Conn
+	pool     *pgxpool.Pool
 	platform string
 	secret   string
 }

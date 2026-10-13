@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jmservic/feast/internal/constants"
@@ -11,14 +12,23 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 )
 
 func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
 	query := r.FormValue("q")
+	queryParts := strings.Fields(strings.TrimSpace(query))
+	lastIndex := len(queryParts) - 1
+	tsQuery := ""
+	if lastIndex >= 0 {
+		queryParts[lastIndex] = queryParts[lastIndex] + ":*"
+		tsQuery = strings.Join(queryParts, " & ")
+		fmt.Println(tsQuery)
+	}
 
 	storedIngredients, err := cfg.db.GetIngredientsByQuery(r.Context(), database.GetIngredientsByQueryParams{
-		Query:  query,
+		Query:  tsQuery,
 		UserID: &userId,
 	})
 
@@ -27,19 +37,31 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if len(storedIngredients) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	ingredients := make([]dto.Ingredient, 0, len(storedIngredients))
 	ingredientIndexes := make(map[int64]int, len(storedIngredients))
 	ingredientIds := make([]int, 0, len(storedIngredients))
 
 	for index, storedIngredient := range storedIngredients {
+		var brand string
+		if storedIngredient.Brand != nil {
+			brand = *storedIngredient.Brand
+		}
 		ingredient := dto.Ingredient{
 			Amount:        decimal.NewFromInt(1),
 			Name:          storedIngredient.Name,
 			Fats:          storedIngredient.Fats,
 			Carbohydrates: storedIngredient.Carbohydrates,
 			Protein:       storedIngredient.Protein,
+			Calories:      storedIngredient.Calories,
 			Unittype:      dto.Measurement(storedIngredient.UnitType),
 			Id:            storedIngredient.ID,
+			Brand:         brand,
+			UserId:        storedIngredient.UserID,
 		}
 
 		ingredients = append(ingredients, ingredient)
@@ -90,7 +112,9 @@ func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request
 		ingredient.Fats = storedIngredient.Fats
 		ingredient.Carbohydrates = storedIngredient.Carbohydrates
 		ingredient.Protein = storedIngredient.Protein
+		ingredient.Calories = storedIngredient.Calories
 		ingredient.Unittype = dto.Measurement(storedIngredient.UnitType)
+		ingredient.Brand = *storedIngredient.Brand
 		ingredient.UserId = storedIngredient.UserID
 		ingredient.Id = storedIngredient.ID
 	})
@@ -182,7 +206,7 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 	}
 
 	// create a repeatable read transaction
-	tx, err := cfg.conn.BeginTx(r.Context(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	tx, err := cfg.pool.BeginTx(r.Context(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, constants.BeginTransactionErrStr, err)
 		return

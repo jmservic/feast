@@ -3,12 +3,12 @@ package integration
 import (
 	//	"github.com/google/uuid"
 	"errors"
-	"net/http"
-	"testing"
-
 	"github.com/jmservic/feast/integration_tests/dto"
 	"github.com/jmservic/feast/integration_tests/helpers"
 	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/assert"
+	"net/http"
+	"testing"
 )
 
 func CreateDecimal(value any) (decimal.Decimal, error) {
@@ -366,7 +366,7 @@ func TestCreateIngredient(t *testing.T) {
 
 			if testCase.statusCode == http.StatusCreated {
 				ingredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
-				t.Log(ingredient)
+				//t.Log(ingredient)
 
 				// compare values to the map
 				amount, err := CreateDecimal(testCase.params[dto.IngredientAmount])
@@ -475,6 +475,308 @@ func TestCreateIngredient(t *testing.T) {
 						t.Fatalf("Couldn't find serving info for [%v], in [%v]", serving, ingredient.Servings)
 					}
 				}
+			} else {
+				res.Body.Close()
+			}
+		})
+	}
+}
+
+func TestGetIngredient(t *testing.T) {
+	helpers.LoadDotEnv()
+
+	member := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	res := client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(member.email, member.password)
+	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+	token := loginResponse.Token
+
+	res = client.CreateIngredient(token, map[dto.IngredientKeys]any{
+		dto.IngredientName:     "Simple Italian Chicken",
+		dto.IngredientProtein:  45.1,
+		dto.IngredientFats:     13,
+		dto.IngredientCarbs:    8.9,
+		dto.IngredientCalories: 345,
+		dto.IngredientBrand:    "Service Fam",
+		dto.IngredientAmount:   1,
+		dto.IngredientUnitType: dto.Weight,
+		dto.IngredientServings: []dto.ServingInfo{
+			{
+				Name:     "Servings",
+				Quantity: decimal.Zero,
+			},
+		}})
+	ingredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+
+	testCases := []struct {
+		testName      string
+		ingredientsId int64
+		ingredient    dto.IngredientResponse
+		statusCode    int
+	}{
+		{
+			testName:      "Successfully get ingredient by Id",
+			ingredientsId: ingredient.Id,
+			ingredient:    ingredient,
+			statusCode:    http.StatusOK,
+		},
+		{
+			testName:      "Unsuccessfully get nonexistent ingredient",
+			ingredientsId: 1334,
+			statusCode:    http.StatusNotFound,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			res := client.GetIngredient(token, testCase.ingredientsId)
+			if res.StatusCode != testCase.statusCode {
+				buffer := make([]byte, 1000)
+				res.Body.Read(buffer)
+				t.Log(string(buffer))
+				res.Body.Close()
+				t.Fatalf("Expected get ingredient to return %d, received %d", testCase.statusCode, res.StatusCode)
+			}
+
+			if res.StatusCode == http.StatusOK {
+				rtnIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
+				assert.Equal(t, ingredient, rtnIngredient, "The return ingredient should equal the previously created ingredient")
+			} else {
+				res.Body.Close()
+			}
+
+		})
+	}
+}
+
+func TestGetIngredients(t *testing.T) {
+	helpers.LoadDotEnv()
+
+	member := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+	foodInfos := map[string]map[dto.IngredientKeys]any{
+		"Enriched Long Grain White Rice": {
+			dto.IngredientName:     "Enriched Long Grain White Rice",
+			dto.IngredientCarbs:    decimal.NewFromInt(36),
+			dto.IngredientProtein:  decimal.NewFromInt(3),
+			dto.IngredientCalories: decimal.NewFromInt(160),
+			dto.IngredientBrand:    "Food Lion",
+			dto.IngredientAmount:   45,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Black Beans": {
+			dto.IngredientName:     "Black Beans",
+			dto.IngredientFats:     0.5,
+			dto.IngredientCarbs:    36,
+			dto.IngredientProtein:  8,
+			dto.IngredientCalories: 130,
+			dto.IngredientBrand:    "Goya",
+			dto.IngredientAmount:   122,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Green Beans": {
+			dto.IngredientName:     "Green Beans",
+			dto.IngredientCarbs:    6,
+			dto.IngredientProtein:  2,
+			dto.IngredientCalories: 25,
+			dto.IngredientBrand:    "Pero Family Farms",
+			dto.IngredientAmount:   85,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Organic Whole Milk": {
+			dto.IngredientName:     "Organic Whole Milk",
+			dto.IngredientFats:     8,
+			dto.IngredientCarbs:    13,
+			dto.IngredientProtein:  8,
+			dto.IngredientCalories: 160,
+			dto.IngredientBrand:    "Horizon Organic",
+			dto.IngredientAmount:   240,
+			dto.IngredientUnitType: dto.Volume,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "mL",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Simple Italian Chicken": {
+			dto.IngredientName:     "Simple Italian Chicken",
+			dto.IngredientFats:     14.4,
+			dto.IngredientCarbs:    8.9,
+			dto.IngredientProtein:  45.1,
+			dto.IngredientCalories: 345,
+			dto.IngredientAmount:   1,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "dto.IngredientServings",
+					Quantity: decimal.Zero,
+				},
+			},
+		},
+		"Simple Spinach Scramble": {
+			dto.IngredientName:     "Simple Spinach Scramble",
+			dto.IngredientFats:     10.3,
+			dto.IngredientCarbs:    5.2,
+			dto.IngredientProtein:  35.9,
+			dto.IngredientCalories: 277,
+			dto.IngredientAmount:   1,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "dto.IngredientServings",
+					Quantity: decimal.Zero,
+				},
+			},
+		},
+		"Whole Milk Greek Yogurt": {
+			dto.IngredientName:     "Whole Milk Greek Yogurt",
+			dto.IngredientFats:     8,
+			dto.IngredientCarbs:    8,
+			dto.IngredientProtein:  16,
+			dto.IngredientCalories: 160,
+			dto.IngredientBrand:    "Food Lion",
+			dto.IngredientAmount:   170,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Egg Whites": {
+			dto.IngredientName:     "Egg Whites",
+			dto.IngredientProtein:  5,
+			dto.IngredientCalories: 25,
+			dto.IngredientBrand:    "Food lion",
+			dto.IngredientAmount:   46,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Sour Cream Grade A": {
+			dto.IngredientName:     "Sour Cream Grade A",
+			dto.IngredientFats:     5,
+			dto.IngredientCarbs:    1,
+			dto.IngredientProtein:  0.5,
+			dto.IngredientCalories: 60,
+			dto.IngredientBrand:    "food Lion",
+			dto.IngredientAmount:   30,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Chicken Breast": {
+			dto.IngredientName:     "Chicken Breast",
+			dto.IngredientFats:     2,
+			dto.IngredientCarbs:    0,
+			dto.IngredientProtein:  23,
+			dto.IngredientCalories: 110,
+			dto.IngredientAmount:   113.398093,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+	}
+	foods := make(map[string]dto.IngredientResponse, len(foodInfos))
+
+	res := client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(member.email, member.password)
+	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+	token := loginResponse.Token
+
+	for name, infoMap := range foodInfos {
+		res := client.CreateIngredient(token, infoMap)
+		foods[name] = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+	}
+
+	testCases := []struct {
+		testName, query     string
+		expectedIngredients []dto.IngredientResponse
+		statusCode          int
+	}{
+		{
+			testName: "Query Beans return the 2 bean products",
+			query:    "Beans",
+			expectedIngredients: []dto.IngredientResponse{
+				foods["Black Beans"],
+				foods["Green Beans"],
+			},
+			statusCode: http.StatusOK,
+		},
+		/*	{
+			testName:
+
+		},*/
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			res := client.GetIngredients(token, testCase.query)
+			if res.StatusCode != testCase.statusCode {
+				t.Fatalf("Expected get ingredients to return %d, received %d", testCase.statusCode, res.StatusCode)
+			}
+			if testCase.statusCode == http.StatusOK {
+				ingredients := helpers.GetResponseObject[[]dto.IngredientResponse](t, res, http.StatusOK)
+				assert.ElementsMatch(t, testCase.expectedIngredients, ingredients)
+
 			} else {
 				res.Body.Close()
 			}

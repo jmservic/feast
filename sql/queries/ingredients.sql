@@ -29,7 +29,7 @@ SELECT
 	id,
 	ingredient_id
 FROM ingredient_servings
-WHERE ingredient_id IN (@ingredient_ids::int[]);
+WHERE ingredient_id = ANY(@ingredient_ids::int[]);
 
 -- name: GetIngredientById :one
 SELECT 
@@ -57,7 +57,7 @@ SELECT
 	brand,
 	user_id,
 	ts_rank(search_vector, query) AS rank
-FROM ingredients, plainto_tsquery(@query) query
+FROM ingredients, to_tsquery(@query) query
 WHERE search_vector @@ query AND user_id = @user_id
 ORDER BY rank DESC
 LIMIT 50;

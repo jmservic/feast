@@ -135,7 +135,7 @@ SELECT
 	brand,
 	user_id,
 	ts_rank(search_vector, query) AS rank
-FROM ingredients, plainto_tsquery($1) query
+FROM ingredients, to_tsquery($1) query
 WHERE search_vector @@ query AND user_id = $2
 ORDER BY rank DESC
 LIMIT 50
@@ -232,7 +232,7 @@ SELECT
 	id,
 	ingredient_id
 FROM ingredient_servings
-WHERE ingredient_id IN ($1::int[])
+WHERE ingredient_id = ANY($1::int[])
 `
 
 type GetIngredientsServingsByIdsRow struct {

@@ -39,7 +39,7 @@ func (cfg apiConfig) handlerCreateHouseholdMember(w http.ResponseWriter, r *http
 		return
 	}
 	// create a repeatable read transaction
-	tx, err := cfg.conn.BeginTx(r.Context(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	tx, err := cfg.pool.BeginTx(r.Context(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, constants.BeginTransactionErrStr, err)
 		return
