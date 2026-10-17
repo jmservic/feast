@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	//	"fmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jmservic/feast/internal/constants"
@@ -24,7 +24,7 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 	if lastIndex >= 0 {
 		queryParts[lastIndex] = queryParts[lastIndex] + ":*"
 		tsQuery = strings.Join(queryParts, " & ")
-		fmt.Println(tsQuery)
+		//		fmt.Println(tsQuery)
 	}
 
 	storedIngredients, err := cfg.db.GetIngredientsByQuery(r.Context(), database.GetIngredientsByQueryParams{
@@ -295,7 +295,247 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 }
 
 func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	ingredientId, err := strconv.ParseInt(r.PathValue("ingredient_id"), 10, 64)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidIntStringErrStr, err)
+		return
+	}
 
+	storedIngredient, err := cfg.db.GetIngredientById(r.Context(), ingredientId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetIngredientErrStr, err)
+		return
+	}
+
+	if storedIngredient.UserID == nil || *storedIngredient.UserID != userId {
+		respondWithError(w, http.StatusForbidden, constants.NotAuthorizedErrStr, nil)
+		return
+
+	}
+
+	storedServings, err := cfg.db.GetIngredientsServingsById(r.Context(), ingredientId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetIngredientServingsErrStr, err)
+		return
+	}
+	if len(storedServings) == 0 {
+		respondWithError(w, http.StatusNotFound, constants.GetIngredientServingsErrStr, nil)
+		return
+	}
+
+	params := struct {
+		Name            *string           `json:"name"`
+		Fats            *decimal.Decimal  `json:"fats"`
+		Carbohydrates   *decimal.Decimal  `json:"carboyhydrates"`
+		Protein         *decimal.Decimal  `json:"protein"`
+		Calories        *decimal.Decimal  `json:"calories"`
+		Brand           *string           `json:"brand"`
+		Amount          *decimal.Decimal  `json:"amount"`
+		Unittype        *dto.Measurement  `json:"unittype"`
+		Servings        []dto.ServingInfo `json:"servings"`
+		RemovedServings []int16           `json:"removed_servings"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.JsonDecodeErrStr, err)
+		return
+	}
+
+	//Check parameters
+	if (params.Fats != nil || params.Carbohydrates != nil || params.Protein != nil || params.Calories != nil) && params.Amount == nil {
+		respondWithError(w, http.StatusBadRequest, constants.EmptyParameterErrStr, nil)
+		return
+	}
+
+	if params.Amount != nil && !params.Amount.IsPositive() {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidAmountErrStr, nil)
+		return
+	}
+
+	updateParams := database.UpdateIngredientParams{}
+
+	if params.Name != nil {
+		if *params.Name == "" {
+			respondWithError(w, http.StatusBadRequest, constants.EmptyParameterErrStr, nil)
+			return
+		}
+		updateParams.Name = *params.Name
+	} else {
+		updateParams.Name = storedIngredient.Name
+	}
+
+	if params.Fats != nil {
+		if params.Fats.IsNegative() {
+			respondWithError(w, http.StatusBadRequest, constants.InvalidFatsErrStr, nil)
+			return
+		}
+		updateParams.Fats = params.Fats.Div(*params.Amount)
+	} else {
+		updateParams.Fats = storedIngredient.Fats
+	}
+
+	if params.Protein != nil {
+		if params.Protein.IsNegative() {
+			respondWithError(w, http.StatusBadRequest, constants.InvalidProteinErrStr, nil)
+			return
+		}
+		updateParams.Protein = params.Protein.Div(*params.Amount)
+	} else {
+		updateParams.Protein = storedIngredient.Protein
+	}
+
+	if params.Carbohydrates != nil {
+		if params.Carbohydrates.IsNegative() {
+			respondWithError(w, http.StatusBadRequest, constants.InvalidCarbohydratesErrStr, nil)
+			return
+
+		}
+		updateParams.Carbohydrates = params.Carbohydrates.Div(*params.Amount)
+	} else {
+		updateParams.Carbohydrates = storedIngredient.Carbohydrates
+	}
+
+	if params.Calories != nil {
+		if params.Calories.IsNegative() {
+			respondWithError(w, http.StatusBadRequest, constants.InvalidCalorieErrStr, nil)
+			return
+		}
+		updateParams.Calories = params.Calories.Div(*params.Amount)
+	} else {
+		updateParams.Calories = storedIngredient.Calories
+	}
+
+	if params.Brand != nil {
+		updateParams.Brand = params.Brand
+	} else {
+		updateParams.Brand = storedIngredient.Brand
+	}
+
+	if params.Unittype != nil {
+		updateParams.UnitType = bool(*params.Unittype)
+	} else {
+		updateParams.UnitType = storedIngredient.UnitType
+	}
+
+	finalServingsState := map[int16]dto.ServingInfo{}
+
+	//Add stored Servings
+	for _, serving := range storedServings {
+		serv := dto.ServingInfo{
+			Id:       serving.ID,
+			Name:     serving.Name,
+			Quantity: serving.Quantity,
+		}
+
+		finalServingsState[serv.Id] = serv
+	}
+
+	//Add updated Servings
+	for _, serving := range params.Servings {
+		finalServingsState[serving.Id] = serving
+	}
+
+	//Remove deleted Servings
+	for _, id := range params.RemovedServings {
+		delete(finalServingsState, id)
+	}
+
+	numOfFinalServings := len(finalServingsState)
+
+	//Validate the New Servings
+	if numOfFinalServings == 0 {
+		respondWithError(w, http.StatusBadRequest, constants.EmptyParameterErrStr, nil)
+		return
+	}
+
+	for _, serving := range finalServingsState {
+
+		if serving.Quantity.IsNegative() {
+			respondWithError(w, http.StatusBadRequest, constants.ServingsCreationErrStr, nil)
+			return
+		}
+
+		if serving.Quantity.IsZero() && numOfFinalServings > 1 {
+			respondWithError(w, http.StatusBadRequest, constants.InvalidMultipleServingsErrStr, nil)
+			return
+		}
+	}
+
+	// create a repeatable read transaction
+	tx, err := cfg.pool.BeginTx(r.Context(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.BeginTransactionErrStr, err)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	queries := cfg.db.WithTx(tx)
+	wg := sync.WaitGroup{}
+	errs := []error{}
+	updatedIngredient := database.Ingredient{}
+	rtnServings := []dto.ServingInfo{}
+
+	wg.Go(func() {
+		updatedIngredient, err = queries.UpdateIngredient(r.Context(), updateParams)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	})
+
+	wg.Go(func() {
+		updatedServings := make([]dto.ServingInfo, 0, len(finalServingsState))
+		for _, serving := range finalServingsState {
+			updatedServings = append(updatedServings, serving)
+		}
+		err := queries.CreateIngredientServings(r.Context(), database.CreateIngredientServingsParams{
+			IngredientID: ingredientId,
+			Servings:     updatedServings,
+		})
+		if err != nil {
+			errs = append(errs, err)
+			return
+		}
+		servings, err := queries.GetIngredientsServingsById(r.Context(), ingredientId)
+		if err != nil {
+			errs = append(errs, err)
+			return
+		}
+		for _, serving := range servings {
+			rtnServings = append(rtnServings, dto.ServingInfo{
+				Id:       serving.ID,
+				Name:     serving.Name,
+				Quantity: serving.Quantity,
+			})
+		}
+	})
+
+	wg.Wait()
+
+	//TODO: handle this in a way that utilizes both errors
+	if len(errs) > 0 {
+		respondWithError(w, mapDbErrorToHttpStatusCode(errs[0]), constants.GetIngredientErrStr, err)
+		return
+	}
+
+	brandRtnVal := ""
+	if updatedIngredient.Brand != nil {
+		brandRtnVal = *updatedIngredient.Brand
+	}
+
+	respondWithJSON(w, http.StatusOK, dto.Ingredient{
+		Id:            updatedIngredient.ID,
+		Name:          updatedIngredient.Name,
+		Fats:          updatedIngredient.Fats,
+		Carbohydrates: updatedIngredient.Carbohydrates,
+		Protein:       updatedIngredient.Protein,
+		Calories:      updatedIngredient.Calories,
+		Amount:        decimal.NewFromInt(1),
+		Unittype:      dto.Measurement(updatedIngredient.UnitType),
+		Brand:         brandRtnVal,
+		UserId:        updatedIngredient.UserID,
+		Servings:      rtnServings,
+	})
 }
 
 func (cfg apiConfig) handlerDeleteIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {

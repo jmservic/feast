@@ -61,3 +61,16 @@ FROM ingredients, to_tsquery(@query) query
 WHERE search_vector @@ query AND user_id = @user_id
 ORDER BY rank DESC
 LIMIT 50;
+
+-- name: UpdateIngredient :one
+UPDATE ingredients
+SET
+	name = $2,
+	fats = $3,
+	carbohydrates = $4,
+	protein = $5,
+	calories = $6,
+	unit_type = $7,
+	brand = $8
+WHERE id = $1
+RETURNING *;

@@ -761,10 +761,36 @@ func TestGetIngredients(t *testing.T) {
 			},
 			statusCode: http.StatusOK,
 		},
-		/*	{
-			testName:
-
-		},*/
+		{
+			testName: "Prefix query B returns the bean products and chicken breast",
+			query:    "B",
+			expectedIngredients: []dto.IngredientResponse{
+				foods["Black Beans"],
+				foods["Green Beans"],
+				foods["Chicken Breast"],
+			},
+			statusCode: http.StatusOK,
+		},
+		{
+			testName: "Query that matches the ingredients brand, returns the ingredients",
+			query:    "Food Lion",
+			expectedIngredients: []dto.IngredientResponse{
+				foods["Sour Cream Grade A"],
+				foods["Egg Whites"],
+				foods["Whole Milk Greek Yogurt"],
+				foods["Enriched Long Grain White Rice"],
+			},
+			statusCode: http.StatusOK,
+		},
+		{
+			testName:   "Empty query returns nothing",
+			statusCode: http.StatusNotFound,
+		},
+		{
+			testName:   "Query that doesn't match any ingredients returns nothing",
+			query:      "cake",
+			statusCode: http.StatusNotFound,
+		},
 	}
 
 	for _, testCase := range testCases {

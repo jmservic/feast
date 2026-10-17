@@ -266,3 +266,55 @@ func (q *Queries) GetIngredientsServingsByIds(ctx context.Context, ingredientIds
 	}
 	return items, nil
 }
+
+const updateIngredient = `-- name: UpdateIngredient :one
+UPDATE ingredients
+SET
+	name = $2,
+	fats = $3,
+	carbohydrates = $4,
+	protein = $5,
+	calories = $6,
+	unit_type = $7,
+	brand = $8
+WHERE id = $1
+RETURNING id, name, fats, carbohydrates, protein, calories, unit_type, brand, user_id, search_vector
+`
+
+type UpdateIngredientParams struct {
+	ID            int64
+	Name          string
+	Fats          decimal.Decimal
+	Carbohydrates decimal.Decimal
+	Protein       decimal.Decimal
+	Calories      decimal.Decimal
+	UnitType      bool
+	Brand         *string
+}
+
+func (q *Queries) UpdateIngredient(ctx context.Context, arg UpdateIngredientParams) (Ingredient, error) {
+	row := q.db.QueryRow(ctx, updateIngredient,
+		arg.ID,
+		arg.Name,
+		arg.Fats,
+		arg.Carbohydrates,
+		arg.Protein,
+		arg.Calories,
+		arg.UnitType,
+		arg.Brand,
+	)
+	var i Ingredient
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Fats,
+		&i.Carbohydrates,
+		&i.Protein,
+		&i.Calories,
+		&i.UnitType,
+		&i.Brand,
+		&i.UserID,
+		&i.SearchVector,
+	)
+	return i, err
+}

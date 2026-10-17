@@ -115,7 +115,7 @@ func main() {
 	handler.Handle("GET /api/ingredients", cfg.middlewareAuthentication(cfg.handlerGetIngredients))
 	handler.Handle("GET /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerGetIngredient))
 	handler.Handle("POST /api/ingredients", cfg.middlewareAuthentication(cfg.handlerCreateIngredient))
-	handler.Handle("PUT /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerUpdateIngredient))
+	handler.Handle("PATCH /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerUpdateIngredient))
 	handler.Handle("DELETE /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerDeleteIngredient))
 
 	// Admin
