@@ -809,3 +809,241 @@ func TestGetIngredients(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateIngredient(t *testing.T) {
+	helpers.LoadDotEnv()
+
+	member := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	foodInfos := map[string]map[dto.IngredientKeys]any{
+		"Enriched Long Grain White Rice": {
+			dto.IngredientName:     "Enriched Long Grain White Rice",
+			dto.IngredientCarbs:    decimal.NewFromInt(36),
+			dto.IngredientProtein:  decimal.NewFromInt(3),
+			dto.IngredientCalories: decimal.NewFromInt(160),
+			dto.IngredientBrand:    "Food Lion",
+			dto.IngredientAmount:   45,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Black Beans": {
+			dto.IngredientName:     "Black Beans",
+			dto.IngredientFats:     0.5,
+			dto.IngredientCarbs:    36,
+			dto.IngredientProtein:  8,
+			dto.IngredientCalories: 130,
+			dto.IngredientBrand:    "Goya",
+			dto.IngredientAmount:   122,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Green Beans": {
+			dto.IngredientName:     "Green Beans",
+			dto.IngredientCarbs:    6,
+			dto.IngredientProtein:  2,
+			dto.IngredientCalories: 25,
+			dto.IngredientBrand:    "Pero Family Farms",
+			dto.IngredientAmount:   85,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Organic Whole Milk": {
+			dto.IngredientName:     "Organic Whole Milk",
+			dto.IngredientFats:     8,
+			dto.IngredientCarbs:    13,
+			dto.IngredientProtein:  8,
+			dto.IngredientCalories: 160,
+			dto.IngredientBrand:    "Horizon Organic",
+			dto.IngredientAmount:   240,
+			dto.IngredientUnitType: dto.Volume,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "mL",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Simple Italian Chicken": {
+			dto.IngredientName:     "Simple Italian Chicken",
+			dto.IngredientFats:     14.4,
+			dto.IngredientCarbs:    8.9,
+			dto.IngredientProtein:  45.1,
+			dto.IngredientCalories: 345,
+			dto.IngredientAmount:   1,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "dto.IngredientServings",
+					Quantity: decimal.Zero,
+				},
+			},
+		},
+		"Simple Spinach Scramble": {
+			dto.IngredientName:     "Simple Spinach Scramble",
+			dto.IngredientFats:     10.3,
+			dto.IngredientCarbs:    5.2,
+			dto.IngredientProtein:  35.9,
+			dto.IngredientCalories: 277,
+			dto.IngredientAmount:   1,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "dto.IngredientServings",
+					Quantity: decimal.Zero,
+				},
+			},
+		},
+		"Whole Milk Greek Yogurt": {
+			dto.IngredientName:     "Whole Milk Greek Yogurt",
+			dto.IngredientFats:     8,
+			dto.IngredientCarbs:    8,
+			dto.IngredientProtein:  16,
+			dto.IngredientCalories: 160,
+			dto.IngredientBrand:    "Food Lion",
+			dto.IngredientAmount:   170,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Egg Whites": {
+			dto.IngredientName:     "Egg Whites",
+			dto.IngredientProtein:  5,
+			dto.IngredientCalories: 25,
+			dto.IngredientBrand:    "Food lion",
+			dto.IngredientAmount:   46,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Sour Cream Grade A": {
+			dto.IngredientName:     "Sour Cream Grade A",
+			dto.IngredientFats:     5,
+			dto.IngredientCarbs:    1,
+			dto.IngredientProtein:  0.5,
+			dto.IngredientCalories: 60,
+			dto.IngredientBrand:    "food Lion",
+			dto.IngredientAmount:   30,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Chicken Breast": {
+			dto.IngredientName:     "Chicken Breast",
+			dto.IngredientFats:     2,
+			dto.IngredientCarbs:    0,
+			dto.IngredientProtein:  23,
+			dto.IngredientCalories: 110,
+			dto.IngredientAmount:   113.398093,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+	}
+	foods := make(map[string]dto.IngredientResponse, len(foodInfos))
+
+	res := client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(member.email, member.password)
+	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+	token := loginResponse.Token
+
+	for name, infoMap := range foodInfos {
+		res := client.CreateIngredient(token, infoMap)
+		foods[name] = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+	}
+
+	testCases := []struct {
+		testName           string
+		ingredientId       int64
+		expectedIngredient dto.IngredientResponse
+		payload            map[string]any
+		statusCode         int
+	}{
+		{
+			testName:     "Successfully updated Ingredient Name",
+			ingredientId: foods["Sour Cream Grade A"].Id,
+			expectedIngredient: updateIngredientResponse(foods["Sour Cream Grade A"], map[dto.IngredientKeys]any{
+				dto.IngredientName: "Sour Cream Grade B",
+			}, decimal.Zero),
+			statusCode: http.StatusOK,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+
+		})
+	}
+}
+
+func updateIngredientResponse(ing dto.IngredientResponse, updates map[dto.IngredientKeys]any, amount decimal.Decimal) dto.IngredientResponse {
+	for key, value := range updates {
+		switch key {
+		case dto.IngredientName:
+			ing.Name = value.(string)
+		case dto.IngredientFats:
+			decimalVal, _ := CreateDecimal(value)
+			ing.Fats = decimalVal.Div(amount)
+		case dto.IngredientCarbs:
+			decimalVal, _ := CreateDecimal(value)
+			ing.Carbohydrates = decimalVal.Div(amount)
+		case dto.IngredientProtein:
+			decimalVal, _ := CreateDecimal(value)
+			ing.Protein = decimalVal.Div(amount)
+		case dto.IngredientCalories:
+			decimalVal, _ := CreateDecimal(value)
+			ing.Calories = decimalVal.Div(amount)
+		case dto.IngredientUnitType:
+			ing.Unittype = dto.Measurement(value.(bool))
+		case dto.IngredientServings:
+			ing.Servings = value.([]dto.ServingInfo)
+		case dto.IngredientBrand:
+			ing.Brand = value.(string)
+		}
+	}
+
+	return ing
+}
