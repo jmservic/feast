@@ -996,24 +996,21 @@ func TestUpdateIngredient(t *testing.T) {
 	}
 
 	testCases := []struct {
-		testName           string
-		ingredientId       int64
-		expectedIngredient dto.IngredientResponse
-		payload            map[string]any
-		statusCode         int
+		testName     string
+		ingredientId int64
+		payload      map[string]any
+		statusCode   int
 	}{
 		{
 			testName:     "Successfully updated Ingredient Name",
 			ingredientId: foods["Sour Cream Grade A"].Id,
-			expectedIngredient: updateIngredientResponse(foods["Sour Cream Grade A"], map[dto.IngredientKeys]any{
-				dto.IngredientName: "Sour Cream Grade B",
-			}, decimal.Zero),
-			statusCode: http.StatusOK,
+			statusCode:   http.StatusOK,
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
+			//Instead of the expected in the testCase, get the current version, update date, and use that as the expected. EASY
 
 		})
 	}
