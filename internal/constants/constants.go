@@ -29,6 +29,7 @@ const (
 	HouseholdUpdateErrStr                        string = "error updating a household"
 	MemberInviteRetrievalByUserErrStr            string = "error getting member invites by user ID"
 	IngredientCreationErrStr                     string = "error creating a new ingredient"
+	IngredientUpdateErrStr                       string = "error updating the ingredient"
 	InvalidCalorieErrStr                         string = "calorie value cannot be negative"
 	InvalidCarbohydratesErrStr                   string = "carbohydrates  value cannot be negative"
 	InvalidFatsErrStr                            string = "fats value cannot be negative"

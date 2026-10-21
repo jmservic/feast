@@ -68,3 +68,19 @@ func (c Client) GetIngredients(token, query string) *http.Response {
 
 	return res
 }
+
+func (c Client) UpdateIngredient(token string, id int64, updates map[string]any) *http.Response {
+	body := helpers.CreateJSONReader(updates, c.t)
+	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf(c.feastUrl+constants.IngredientsIdPath, id), body)
+	if err != nil {
+		c.t.Fatalf("Error occurred when creating the get request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}

@@ -353,7 +353,8 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	updateParams := database.UpdateIngredientParams{}
+	updateParams := database.UpdateIngredientParams{
+		ID: ingredientId}
 
 	if params.Name != nil {
 		if *params.Name == "" {
@@ -462,60 +463,39 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	// create a repeatable read transaction
-	tx, err := cfg.pool.BeginTx(r.Context(), pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, constants.BeginTransactionErrStr, err)
-		return
-	}
-	defer tx.Rollback(r.Context())
-
-	queries := cfg.db.WithTx(tx)
-	wg := sync.WaitGroup{}
-	errs := []error{}
-	updatedIngredient := database.Ingredient{}
 	rtnServings := []dto.ServingInfo{}
 
-	wg.Go(func() {
-		updatedIngredient, err = queries.UpdateIngredient(r.Context(), updateParams)
-		if err != nil {
-			errs = append(errs, err)
-		}
-	})
-
-	wg.Go(func() {
-		updatedServings := make([]dto.ServingInfo, 0, len(finalServingsState))
-		for _, serving := range finalServingsState {
-			updatedServings = append(updatedServings, serving)
-		}
-		err := queries.CreateIngredientServings(r.Context(), database.CreateIngredientServingsParams{
-			IngredientID: ingredientId,
-			Servings:     updatedServings,
-		})
-		if err != nil {
-			errs = append(errs, err)
-			return
-		}
-		servings, err := queries.GetIngredientsServingsById(r.Context(), ingredientId)
-		if err != nil {
-			errs = append(errs, err)
-			return
-		}
-		for _, serving := range servings {
-			rtnServings = append(rtnServings, dto.ServingInfo{
-				Id:       serving.ID,
-				Name:     serving.Name,
-				Quantity: serving.Quantity,
-			})
-		}
-	})
-
-	wg.Wait()
-
-	//TODO: handle this in a way that utilizes both errors
-	if len(errs) > 0 {
-		respondWithError(w, mapDbErrorToHttpStatusCode(errs[0]), constants.GetIngredientErrStr, err)
+	updatedIngredient, err := cfg.db.UpdateIngredient(r.Context(), updateParams)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.IngredientUpdateErrStr, err)
 		return
+	}
+
+	updatedServings := make([]dto.ServingInfo, 0, len(finalServingsState))
+	for _, serving := range finalServingsState {
+		updatedServings = append(updatedServings, serving)
+	}
+	err = cfg.db.CreateIngredientServings(r.Context(), database.CreateIngredientServingsParams{
+		IngredientID: ingredientId,
+		Servings:     updatedServings,
+	})
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.IngredientUpdateErrStr, err)
+		return
+	}
+
+	servings, err := cfg.db.GetIngredientsServingsById(r.Context(), ingredientId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.IngredientUpdateErrStr, err)
+		return
+	}
+
+	for _, serving := range servings {
+		rtnServings = append(rtnServings, dto.ServingInfo{
+			Id:       serving.ID,
+			Name:     serving.Name,
+			Quantity: serving.Quantity,
+		})
 	}
 
 	brandRtnVal := ""

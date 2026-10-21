@@ -1000,6 +1000,7 @@ func TestUpdateIngredient(t *testing.T) {
 		ingredientId    int64
 		payload         map[string]any
 		statusCode      int
+		amount          decimal.Decimal
 	}{
 		{
 			testName:     "Successfully updated Ingredient Name",
@@ -1020,17 +1021,26 @@ func TestUpdateIngredient(t *testing.T) {
 			currIng := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
 
 			//Update ingredient
-			res := client.UpdateIngredient(testCase.token, testCase.ingredientId, testCase.payload)
+			res = client.UpdateIngredient(testCase.token, testCase.ingredientId, testCase.payload)
 			if res.StatusCode != testCase.statusCode {
 				t.Fatalf("Expected update ingredient to return %d, received %d", testCase.statusCode, res.StatusCode)
 			}
 
+			var (
+				expectedIng dto.IngredientResponse
+				updatedIng  dto.IngredientResponse
+			)
+
 			if testCase.statusCode == http.StatusOK {
-
+				expectedIng = updateIngredientResponse(currIng, testCase.payload, testCase.amount)
+				updatedIng = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
 			} else {
-
+				expectedIng = currIng
+				res.Body.Close()
+				res = client.GetIngredient(testCase.token, testCase.ingredientId)
+				updatedIng = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
 			}
-
+			assert.Equal(t, expectedIng, updatedIng)
 		})
 	}
 }
