@@ -996,29 +996,49 @@ func TestUpdateIngredient(t *testing.T) {
 	}
 
 	testCases := []struct {
-		testName     string
-		ingredientId int64
-		payload      map[string]any
-		statusCode   int
+		testName, token string
+		ingredientId    int64
+		payload         map[string]any
+		statusCode      int
 	}{
 		{
 			testName:     "Successfully updated Ingredient Name",
 			ingredientId: foods["Sour Cream Grade A"].Id,
 			statusCode:   http.StatusOK,
+			payload: map[string]any{
+				string(dto.IngredientName): "Sour Cream Grade B",
+			},
+			token: token,
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
 			//Instead of the expected in the testCase, get the current version, update date, and use that as the expected. EASY
+			//Get current ingredient
+			res := client.GetIngredient(testCase.token, testCase.ingredientId)
+			currIng := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
+
+			//Update ingredient
+			res := client.UpdateIngredient(testCase.token, testCase.ingredientId, testCase.payload)
+			if res.StatusCode != testCase.statusCode {
+				t.Fatalf("Expected update ingredient to return %d, received %d", testCase.statusCode, res.StatusCode)
+			}
+
+			if testCase.statusCode == http.StatusOK {
+
+			} else {
+
+			}
 
 		})
 	}
 }
 
-func updateIngredientResponse(ing dto.IngredientResponse, updates map[dto.IngredientKeys]any, amount decimal.Decimal) dto.IngredientResponse {
+func updateIngredientResponse(ing dto.IngredientResponse, updates map[string]any, amount decimal.Decimal) dto.IngredientResponse {
 	for key, value := range updates {
-		switch key {
+		ingKey := dto.IngredientKeys(key)
+		switch ingKey {
 		case dto.IngredientName:
 			ing.Name = value.(string)
 		case dto.IngredientFats:
