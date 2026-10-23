@@ -3,12 +3,13 @@ package integration
 import (
 	//	"github.com/google/uuid"
 	"errors"
+	"net/http"
+	"testing"
+
 	"github.com/jmservic/feast/integration_tests/dto"
 	"github.com/jmservic/feast/integration_tests/helpers"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"testing"
 )
 
 func CreateDecimal(value any) (decimal.Decimal, error) {
@@ -1011,11 +1012,59 @@ func TestUpdateIngredient(t *testing.T) {
 			},
 			token: token,
 		},
+		{
+			testName:     "Successfully updated Ingredient Fats",
+			ingredientId: foods["Chicken Breast"].Id,
+			statusCode:   http.StatusOK,
+			payload: map[string]any{
+				string(dto.IngredientFats):   11,
+				string(dto.IngredientAmount): 4,
+			},
+			token: token,
+		},
+		{
+			testName:     "Successfully updated Ingredient Carbohydates",
+			ingredientId: foods["Chicken Breast"].Id,
+			statusCode:   http.StatusOK,
+			payload: map[string]any{
+				string(dto.IngredientFats):   14,
+				string(dto.IngredientAmount): 4,
+			},
+			token: token,
+		},
+		{
+			testName:     "Successfully updated Ingredient Protein",
+			ingredientId: foods["Chicken Breast"].Id,
+			statusCode:   http.StatusOK,
+			payload: map[string]any{
+				string(dto.IngredientFats):   34,
+				string(dto.IngredientAmount): 4,
+			},
+			token: token,
+		},
+		{
+			testName:     "Successfully updated Ingredient Calories",
+			ingredientId: foods["Chicken Breast"].Id,
+			statusCode:   http.StatusOK,
+			payload: map[string]any{
+				string(dto.IngredientFats):   191,
+				string(dto.IngredientAmount): 4,
+			},
+			token: token,
+		},
+		{
+			testName:     "Successfully updated Ingredient Unit Type",
+			ingredientId: foods["Egg Whites"].Id,
+			statusCode:   http.StatusOK,
+			payload: map[string]any{
+				string(dto.IngredientUnitType): dto.Volume,
+			},
+			token: token,
+		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-			//Instead of the expected in the testCase, get the current version, update date, and use that as the expected. EASY
 			//Get current ingredient
 			res := client.GetIngredient(testCase.token, testCase.ingredientId)
 			currIng := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
@@ -1032,20 +1081,26 @@ func TestUpdateIngredient(t *testing.T) {
 			)
 
 			if testCase.statusCode == http.StatusOK {
-				expectedIng = updateIngredientResponse(currIng, testCase.payload, testCase.amount)
-				updatedIng = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
+				expectedIng = updateIngredientResponse(currIng, testCase.payload).Normalize()
+				updatedIng = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK).Normalize()
 			} else {
-				expectedIng = currIng
+				expectedIng = currIng.Normalize()
 				res.Body.Close()
 				res = client.GetIngredient(testCase.token, testCase.ingredientId)
-				updatedIng = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
+				updatedIng = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK).Normalize()
 			}
+
 			assert.Equal(t, expectedIng, updatedIng)
 		})
 	}
 }
 
-func updateIngredientResponse(ing dto.IngredientResponse, updates map[string]any, amount decimal.Decimal) dto.IngredientResponse {
+func updateIngredientResponse(ing dto.IngredientResponse, updates map[string]any) dto.IngredientResponse {
+	amount := decimal.NewFromInt(1)
+	if amountVal, ok := updates[string(dto.IngredientAmount)]; ok {
+		amount, _ = CreateDecimal(amountVal)
+	}
+
 	for key, value := range updates {
 		ingKey := dto.IngredientKeys(key)
 		switch ingKey {
@@ -1064,7 +1119,12 @@ func updateIngredientResponse(ing dto.IngredientResponse, updates map[string]any
 			decimalVal, _ := CreateDecimal(value)
 			ing.Calories = decimalVal.Div(amount)
 		case dto.IngredientUnitType:
-			ing.Unittype = dto.Measurement(value.(bool))
+			switch typeVal := value.(type) {
+			case bool:
+				ing.Unittype = dto.Measurement(typeVal)
+			case dto.Measurement:
+				ing.Unittype = typeVal
+			}
 		case dto.IngredientServings:
 			ing.Servings = value.([]dto.ServingInfo)
 		case dto.IngredientBrand:

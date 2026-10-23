@@ -106,6 +106,10 @@ func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request
 			errs = append(errs, err)
 			return
 		}
+		brand := ""
+		if storedIngredient.Brand != nil {
+			brand = *storedIngredient.Brand
+		}
 
 		ingredient.Amount = decimal.NewFromInt(1)
 		ingredient.Name = storedIngredient.Name
@@ -114,7 +118,7 @@ func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request
 		ingredient.Protein = storedIngredient.Protein
 		ingredient.Calories = storedIngredient.Calories
 		ingredient.Unittype = dto.Measurement(storedIngredient.UnitType)
-		ingredient.Brand = *storedIngredient.Brand
+		ingredient.Brand = brand
 		ingredient.UserId = storedIngredient.UserID
 		ingredient.Id = storedIngredient.ID
 	})

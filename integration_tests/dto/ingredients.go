@@ -41,3 +41,16 @@ const (
 	Weight Measurement = false
 	Volume Measurement = true
 )
+
+func (ing IngredientResponse) Normalize() IngredientResponse {
+	ing.Fats = ing.Fats.Normalize()
+	ing.Carbohydrates = ing.Carbohydrates.Normalize()
+	ing.Protein = ing.Protein.Normalize()
+	ing.Calories = ing.Calories.Normalize()
+	ing.Amount = ing.Amount.Normalize()
+	for i, servings := range ing.Servings {
+		servings.Id = -1
+		ing.Servings[i] = servings
+	}
+	return ing
+}
