@@ -820,6 +820,12 @@ func TestUpdateIngredient(t *testing.T) {
 		password: "very-secret",
 	}
 
+	otherMember := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
+
 	feastUrl := helpers.GetFeastURL()
 	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
 	client := dto.NewClient(t, feastUrl)
@@ -991,10 +997,36 @@ func TestUpdateIngredient(t *testing.T) {
 	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
 	token := loginResponse.Token
 
+	res = client.CreateUser(otherMember.name, otherMember.email, otherMember.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(otherMember.email, otherMember.password)
+	otherToken := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK).Token
+
 	for name, infoMap := range foodInfos {
 		res := client.CreateIngredient(token, infoMap)
 		foods[name] = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
 	}
+
+	res = client.CreateIngredient(otherToken, map[dto.IngredientKeys]any{
+		dto.IngredientName:     "Walnut Halves & Pieces",
+		dto.IngredientFats:     18,
+		dto.IngredientCarbs:    4,
+		dto.IngredientProtein:  4,
+		dto.IngredientCalories: 180,
+		dto.IngredientAmount:   28,
+		dto.IngredientUnitType: dto.Weight,
+		dto.IngredientServings: []dto.ServingInfo{
+			{
+				Name:     "grams",
+				Quantity: decimal.NewFromInt(1),
+			},
+		},
+	})
+	otherUserFood := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
 
 	testCases := []struct {
 		testName, token string
@@ -1027,7 +1059,7 @@ func TestUpdateIngredient(t *testing.T) {
 			ingredientId: foods["Chicken Breast"].Id,
 			statusCode:   http.StatusOK,
 			payload: map[string]any{
-				string(dto.IngredientFats):   14,
+				string(dto.IngredientCarbs):  14,
 				string(dto.IngredientAmount): 4,
 			},
 			token: token,
@@ -1037,8 +1069,8 @@ func TestUpdateIngredient(t *testing.T) {
 			ingredientId: foods["Chicken Breast"].Id,
 			statusCode:   http.StatusOK,
 			payload: map[string]any{
-				string(dto.IngredientFats):   34,
-				string(dto.IngredientAmount): 4,
+				string(dto.IngredientProtein): 34,
+				string(dto.IngredientAmount):  4,
 			},
 			token: token,
 		},
@@ -1047,8 +1079,8 @@ func TestUpdateIngredient(t *testing.T) {
 			ingredientId: foods["Chicken Breast"].Id,
 			statusCode:   http.StatusOK,
 			payload: map[string]any{
-				string(dto.IngredientFats):   191,
-				string(dto.IngredientAmount): 4,
+				string(dto.IngredientCalories): 191,
+				string(dto.IngredientAmount):   4,
 			},
 			token: token,
 		},
@@ -1061,18 +1093,241 @@ func TestUpdateIngredient(t *testing.T) {
 			},
 			token: token,
 		},
+		{
+			testName:     "Successfully update Ingredient Serving",
+			ingredientId: foods["Egg Whites"].Id,
+			statusCode:   http.StatusOK,
+			payload: map[string]any{
+				string(dto.IngredientServings): []dto.ServingInfo{
+					{
+						Id:       1,
+						Name:     "ounce",
+						Quantity: decimal.NewFromFloat(28.3495231),
+					},
+				},
+			},
+			token: token,
+		},
+		{
+			testName:     "Successfully add Ingredient Serving",
+			ingredientId: foods["Chicken Breast"].Id,
+			statusCode:   http.StatusOK,
+			payload: map[string]any{
+				string(dto.IngredientServings): []dto.ServingInfo{
+					{
+						Id:       1,
+						Name:     "grams",
+						Quantity: decimal.NewFromInt(1),
+					},
+					{
+						Name:     "Serving",
+						Quantity: decimal.NewFromFloat(28.3495231 * 4),
+					},
+					{
+						Name:     "Double Helping",
+						Quantity: decimal.NewFromFloat(28.3495231 * 8),
+					},
+				},
+			},
+			token: token,
+		},
+		{
+			testName:     "Successfully update multiple fields on an Ingredient",
+			ingredientId: foods["Organic Whole Milk"].Id,
+			statusCode:   http.StatusOK,
+			payload: map[string]any{
+				string(dto.IngredientName):     "(HO) Organic Whole Milk",
+				string(dto.IngredientFats):     1994,
+				string(dto.IngredientCarbs):    1995,
+				string(dto.IngredientProtein):  1996,
+				string(dto.IngredientCalories): 2000,
+				string(dto.IngredientUnitType): dto.Weight,
+				string(dto.IngredientBrand):    "Horizon Organic LTD",
+				string(dto.IngredientAmount):   240,
+				string(dto.IngredientServings): []dto.ServingInfo{
+					{
+						Name:     "Cup",
+						Quantity: decimal.NewFromInt(240),
+					},
+				},
+				string(dto.IngredientRemovedServings): []int{1},
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update another user's ingredient",
+			ingredientId: otherUserFood.Id,
+			statusCode:   http.StatusForbidden,
+			payload: map[string]any{
+				string(dto.IngredientName): "Hehe",
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update a nonexistent ingredient",
+			ingredientId: -1,
+			statusCode:   http.StatusNotFound,
+			token:        token,
+		},
+		{
+			testName:     "Fail to update ingredient Fats without an amount",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientFats): 1331,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient Carbs without an amount",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientCarbs): 1331,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient Protein without an amount",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientProtein): 1331,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient Calories without an amount",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientCalories): 1331,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient when amount is zero",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientAmount): 0,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient when amount is negative",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientAmount): -1,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient when name is an empty string",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientName): "",
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient when Fats is negative",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientFats):   -1331,
+				string(dto.IngredientAmount): 1,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient when Carbs is negative",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientCarbs):  -1331,
+				string(dto.IngredientAmount): 1,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient when Protein is negative",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientProtein): -1331,
+				string(dto.IngredientAmount):  1,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient when Calories is negative",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientCalories): -1331,
+				string(dto.IngredientAmount):   1,
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient when removing all servings",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientRemovedServings): []int{1},
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient when added servings has a negative quantity",
+			ingredientId: foods["Green Beans"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientServings): []dto.ServingInfo{
+					{
+						Name:     "bad",
+						Quantity: decimal.NewFromInt(-1),
+					},
+				},
+			},
+			token: token,
+		},
+		{
+			testName:     "Fail to update ingredient with new servings when the default serving has zero quantity",
+			ingredientId: foods["Simple Spinach Scramble"].Id,
+			statusCode:   http.StatusBadRequest,
+			payload: map[string]any{
+				string(dto.IngredientServings): []dto.ServingInfo{
+					{
+						Name:     "ounce",
+						Quantity: decimal.NewFromInt(28),
+					},
+				},
+			},
+			token: token,
+		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
 			//Get current ingredient
-			res := client.GetIngredient(testCase.token, testCase.ingredientId)
-			currIng := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
+			var currIng dto.IngredientResponse
+			if testCase.statusCode != http.StatusNotFound {
+				res := client.GetIngredient(testCase.token, testCase.ingredientId)
+				currIng = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
+			}
 
 			//Update ingredient
 			res = client.UpdateIngredient(testCase.token, testCase.ingredientId, testCase.payload)
 			if res.StatusCode != testCase.statusCode {
 				t.Fatalf("Expected update ingredient to return %d, received %d", testCase.statusCode, res.StatusCode)
+			}
+
+			if testCase.statusCode == http.StatusNotFound {
+				return
 			}
 
 			var (

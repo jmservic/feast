@@ -31,6 +31,10 @@ SELECT
 FROM ingredient_servings
 WHERE ingredient_id = ANY(@ingredient_ids::int[]);
 
+-- name: DeleteIngredientServings :exec
+DELETE FROM ingredient_servings
+WHERE ingredient_id = @ingredient_id AND id = ANY(@ids::smallint[]);
+
 -- name: GetIngredientById :one
 SELECT 
 	id,

@@ -2,10 +2,10 @@
 CREATE TABLE ingredients (
 	id bigserial PRIMARY KEY,
 	name text NOT NULL,
-	fats numeric(18, 8) NOT NULL,
-	carbohydrates numeric(18, 8) NOT NULL,
-	protein numeric(18, 8) NOT NULL,
-	calories numeric(18, 8) NOT NULL,
+	fats numeric(26, 16) NOT NULL,
+	carbohydrates numeric(26, 16) NOT NULL,
+	protein numeric(26, 16) NOT NULL,
+	calories numeric(26, 16) NOT NULL,
 	unit_type boolean NOT NULL, -- weight vs volume
 	brand text,
 	user_id uuid REFERENCES users (id) ON DELETE CASCADE,

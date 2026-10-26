@@ -330,7 +330,7 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 	params := struct {
 		Name            *string           `json:"name"`
 		Fats            *decimal.Decimal  `json:"fats"`
-		Carbohydrates   *decimal.Decimal  `json:"carboyhydrates"`
+		Carbohydrates   *decimal.Decimal  `json:"carbohydrates"`
 		Protein         *decimal.Decimal  `json:"protein"`
 		Calories        *decimal.Decimal  `json:"calories"`
 		Brand           *string           `json:"brand"`
@@ -436,9 +436,15 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 		finalServingsState[serv.Id] = serv
 	}
 
-	//Add updated Servings
+	//Add updated and new Servings
+	newServingsCounter := int16(0)
 	for _, serving := range params.Servings {
-		finalServingsState[serving.Id] = serving
+		storageId := serving.Id
+		if serving.Id <= 0 {
+			storageId = newServingsCounter
+			newServingsCounter--
+		}
+		finalServingsState[storageId] = serving
 	}
 
 	//Remove deleted Servings
@@ -469,16 +475,19 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 
 	rtnServings := []dto.ServingInfo{}
 
+	//update Ingredient
 	updatedIngredient, err := cfg.db.UpdateIngredient(r.Context(), updateParams)
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.IngredientUpdateErrStr, err)
 		return
 	}
 
+	//update Servings
 	updatedServings := make([]dto.ServingInfo, 0, len(finalServingsState))
 	for _, serving := range finalServingsState {
 		updatedServings = append(updatedServings, serving)
 	}
+
 	err = cfg.db.CreateIngredientServings(r.Context(), database.CreateIngredientServingsParams{
 		IngredientID: ingredientId,
 		Servings:     updatedServings,
@@ -486,6 +495,17 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.IngredientUpdateErrStr, err)
 		return
+	}
+
+	//delete Servings
+	err = cfg.db.DeleteIngredientServings(r.Context(), database.DeleteIngredientServingsParams{
+		IngredientID: ingredientId,
+		Ids:          params.RemovedServings,
+	})
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.IngredientUpdateErrStr, err)
+		return
+
 	}
 
 	servings, err := cfg.db.GetIngredientsServingsById(r.Context(), ingredientId)

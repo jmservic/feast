@@ -3,6 +3,8 @@ package dto
 import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"slices"
+	"strings"
 )
 
 type IngredientResponse struct {
@@ -22,17 +24,18 @@ type IngredientResponse struct {
 type IngredientKeys string
 
 const (
-	IngredientId       IngredientKeys = "id"
-	IngredientName     IngredientKeys = "name"
-	IngredientFats     IngredientKeys = "fats"
-	IngredientCarbs    IngredientKeys = "carbohydrates"
-	IngredientProtein  IngredientKeys = "protein"
-	IngredientCalories IngredientKeys = "calories"
-	IngredientBrand    IngredientKeys = "brand"
-	IngredientUserId   IngredientKeys = "user_id"
-	IngredientAmount   IngredientKeys = "amount"
-	IngredientUnitType IngredientKeys = "unittype"
-	IngredientServings IngredientKeys = "servings"
+	IngredientId              IngredientKeys = "id"
+	IngredientName            IngredientKeys = "name"
+	IngredientFats            IngredientKeys = "fats"
+	IngredientCarbs           IngredientKeys = "carbohydrates"
+	IngredientProtein         IngredientKeys = "protein"
+	IngredientCalories        IngredientKeys = "calories"
+	IngredientBrand           IngredientKeys = "brand"
+	IngredientUserId          IngredientKeys = "user_id"
+	IngredientAmount          IngredientKeys = "amount"
+	IngredientUnitType        IngredientKeys = "unittype"
+	IngredientServings        IngredientKeys = "servings"
+	IngredientRemovedServings IngredientKeys = "removed_servings"
 )
 
 type Measurement bool
@@ -52,5 +55,8 @@ func (ing IngredientResponse) Normalize() IngredientResponse {
 		servings.Id = -1
 		ing.Servings[i] = servings
 	}
+	slices.SortFunc(ing.Servings, func(a, b ServingInfo) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	return ing
 }
