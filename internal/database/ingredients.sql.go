@@ -79,6 +79,16 @@ func (q *Queries) CreateIngredientServings(ctx context.Context, arg CreateIngred
 	return err
 }
 
+const deleteIngredient = `-- name: DeleteIngredient :exec
+DELETE FROM ingredients
+WHERE id = $1
+`
+
+func (q *Queries) DeleteIngredient(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteIngredient, id)
+	return err
+}
+
 const deleteIngredientServings = `-- name: DeleteIngredientServings :exec
 DELETE FROM ingredient_servings
 WHERE ingredient_id = $1 AND id = ANY($2::smallint[])

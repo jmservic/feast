@@ -543,5 +543,28 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 }
 
 func (cfg apiConfig) handlerDeleteIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	ingredientId, err := strconv.ParseInt(r.PathValue("ingredient_id"), 10, 64)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidIntStringErrStr, err)
+		return
+	}
 
+	storedIngredient, err := cfg.db.GetIngredientById(r.Context(), ingredientId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetIngredientErrStr, err)
+		return
+	}
+
+	if storedIngredient.UserID == nil || *storedIngredient.UserID != userId {
+		respondWithError(w, http.StatusForbidden, constants.NotAuthorizedErrStr, nil)
+		return
+	}
+
+	err = cfg.db.DeleteIngredient(r.Context(), ingredientId)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetIngredientErrStr, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -84,3 +84,18 @@ func (c Client) UpdateIngredient(token string, id int64, updates map[string]any)
 
 	return res
 }
+
+func (c Client) DeleteIngredient(token string, id int64) *http.Response {
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf(c.feastUrl+constants.IngredientsIdPath, id), nil)
+	if err != nil {
+		c.t.Fatalf("Error occurred when creating the get request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}

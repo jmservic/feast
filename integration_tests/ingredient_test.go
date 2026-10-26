@@ -1033,7 +1033,6 @@ func TestUpdateIngredient(t *testing.T) {
 		ingredientId    int64
 		payload         map[string]any
 		statusCode      int
-		amount          decimal.Decimal
 	}{
 		{
 			testName:     "Successfully updated Ingredient Name",
@@ -1346,6 +1345,131 @@ func TestUpdateIngredient(t *testing.T) {
 			}
 
 			assert.Equal(t, expectedIng, updatedIng)
+		})
+	}
+}
+
+func TestDeleteIngredient(t *testing.T) {
+	helpers.LoadDotEnv()
+
+	member := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+
+	otherMember := UserInfo{
+		name:     "cassidy",
+		email:    "Cass@example.com",
+		password: "kalina",
+	}
+
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	res := client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(member.email, member.password)
+	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+	token := loginResponse.Token
+
+	res = client.CreateUser(otherMember.name, otherMember.email, otherMember.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(otherMember.email, otherMember.password)
+	otherToken := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK).Token
+
+	res = client.CreateIngredient(token, map[dto.IngredientKeys]any{
+		dto.IngredientName:     "Enriched Long Grain White Rice",
+		dto.IngredientCarbs:    decimal.NewFromInt(36),
+		dto.IngredientProtein:  decimal.NewFromInt(3),
+		dto.IngredientCalories: decimal.NewFromInt(160),
+		dto.IngredientBrand:    "Food Lion",
+		dto.IngredientAmount:   45,
+		dto.IngredientUnitType: dto.Weight,
+		dto.IngredientServings: []dto.ServingInfo{
+			{
+				Name:     "grams",
+				Quantity: decimal.NewFromInt(1),
+			},
+		},
+	})
+	userFood := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+
+	res = client.CreateIngredient(otherToken, map[dto.IngredientKeys]any{
+		dto.IngredientName:     "Walnut Halves & Pieces",
+		dto.IngredientFats:     18,
+		dto.IngredientCarbs:    4,
+		dto.IngredientProtein:  4,
+		dto.IngredientCalories: 180,
+		dto.IngredientAmount:   28,
+		dto.IngredientUnitType: dto.Weight,
+		dto.IngredientServings: []dto.ServingInfo{
+			{
+				Name:     "grams",
+				Quantity: decimal.NewFromInt(1),
+			},
+		},
+	})
+	otherUserFood := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+
+	testCases := []struct {
+		testName, ownerToken string
+		ingredientId         int64
+		statusCode           int
+	}{
+		{
+			testName:     "Successfully delete an ingredient",
+			ingredientId: userFood.Id,
+			statusCode:   http.StatusNoContent,
+			ownerToken:   token,
+		},
+		{
+			testName:     "Fail to delete another user's ingredient",
+			ingredientId: otherUserFood.Id,
+			statusCode:   http.StatusForbidden,
+			ownerToken:   otherToken,
+		},
+		{
+			testName:     "Fail to delete a nonexistent ingredient",
+			ingredientId: -1,
+			statusCode:   http.StatusNotFound,
+			ownerToken:   token,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			var ingredient dto.IngredientResponse
+			if testCase.statusCode != http.StatusNotFound {
+				res := client.GetIngredient(testCase.ownerToken, testCase.ingredientId)
+				ingredient = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
+			}
+			res := client.DeleteIngredient(token, testCase.ingredientId)
+			if res.StatusCode != testCase.statusCode {
+				t.Fatalf("Expected delete ingredient to return %d, received %d", testCase.statusCode, res.StatusCode)
+			}
+			res.Body.Close()
+
+			switch testCase.statusCode {
+			case http.StatusNoContent:
+				res := client.GetIngredient(testCase.ownerToken, testCase.ingredientId)
+				if res.StatusCode != http.StatusNotFound {
+					t.Fatalf("Expected get ingredient to return not found, received %d", res.StatusCode)
+				}
+			case http.StatusForbidden:
+				res := client.GetIngredient(testCase.ownerToken, testCase.ingredientId)
+				currIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK)
+				assert.Equal(t, ingredient, currIngredient)
+			}
 		})
 	}
 }

@@ -78,3 +78,7 @@ SET
 	brand = $8
 WHERE id = $1
 RETURNING *;
+
+-- name: DeleteIngredient :exec
+DELETE FROM ingredients
+WHERE id = $1;
