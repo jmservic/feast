@@ -2,6 +2,8 @@ package constants
 
 const (
 	HouseholdsPath              = "/api/households"
+	IngredientsPath             = "/api/ingredients"
+	IngredientsIdPath           = IngredientsPath + "/%v"
 	UsersPath                   = "/api/users"
 	LeaveHouseholdPath          = HouseholdMembersPath + "/leave"
 	LoginPath                   = "/api/login"

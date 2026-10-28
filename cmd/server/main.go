@@ -4,6 +4,7 @@ import (
 	"context"
 	//"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jmservic/feast/internal/database"
 	"github.com/joho/godotenv"
 	"log"
@@ -41,16 +42,36 @@ func main() {
 		port = "8080"
 	}
 
-	conn, err := pgx.Connect(context.Background(), dbUrl)
+	config, err := pgxpool.ParseConfig(dbUrl)
+	if err != nil {
+		log.Fatalf("Error parsing pool config: %s", err)
+	}
+
+	config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		t, err := conn.LoadType(context.Background(), "serving_info") // serving_info type
+		if err != nil {
+			return err
+		}
+		conn.TypeMap().RegisterType(t)
+
+		t, err = conn.LoadType(context.Background(), "_serving_info") // serving_info[] type
+		if err != nil {
+			return err
+		}
+		conn.TypeMap().RegisterType(t)
+		return nil
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		log.Fatalf("Error opening the database: %s", err)
 	}
 
-	dbQueries := database.New(conn)
+	dbQueries := database.New(pool)
 
 	cfg := apiConfig{
 		db:       dbQueries,
-		conn:     conn,
+		pool:     pool,
 		platform: platform,
 		secret:   jwtSecret,
 	}
@@ -89,6 +110,13 @@ func main() {
 	handler.Handle("PUT /api/members/invites", cfg.middlewareAuthentication(cfg.handlerHandleMemberInvite))
 	handler.Handle("POST /api/members/invites", cfg.middlewareAuthentication(cfg.handlerInviteUserToHousehold))
 	handler.Handle("GET /api/members/leave", cfg.middlewareAuthentication(cfg.handlerLeaveHousehold))
+
+	// Ingredients
+	handler.Handle("GET /api/ingredients", cfg.middlewareAuthentication(cfg.handlerGetIngredients))
+	handler.Handle("GET /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerGetIngredient))
+	handler.Handle("POST /api/ingredients", cfg.middlewareAuthentication(cfg.handlerCreateIngredient))
+	handler.Handle("PATCH /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerUpdateIngredient))
+	handler.Handle("DELETE /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerDeleteIngredient))
 
 	// Admin
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)

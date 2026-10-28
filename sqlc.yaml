@@ -8,6 +8,7 @@ sql:
         package: "database"
         sql_package: "pgx/v5"
         out: "internal/database"
+        emit_pointers_for_null_types: true
         overrides:
           - db_type: "uuid"
             go_type:
@@ -31,3 +32,16 @@ sql:
             go_type: "int"
           - db_type: "serial"
             go_type: "int"
+          - db_type: "pg_catalog.numeric"
+            go_type: 
+              import: "github.com/shopspring/decimal"
+              type: "Decimal"
+          - db_type: "pg_catalog.numeric"
+            nullable: true       
+            go_type: 
+              import: "github.com/shopspring/decimal"
+              type: "Decimal"
+          - db_type: "serving_info"
+            go_type: 
+              import: "github.com/jmservic/feast/internal/dto"
+              type: "ServingInfo"
