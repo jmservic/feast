@@ -118,6 +118,12 @@ func main() {
 	handler.Handle("PATCH /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerUpdateIngredient))
 	handler.Handle("DELETE /api/ingredients/{ingredient_id}", cfg.middlewareAuthentication(cfg.handlerDeleteIngredient))
 
+	// Food Log
+	handler.Handle("GET /api/logs", cfg.middlewareAuthentication(cfg.handlerGetLogs))
+	handler.Handle("POST /api/logs", cfg.middlewareAuthentication(cfg.handlerCreateLogItem))
+	handler.Handle("PATCH /api/logs", cfg.middlewareAuthentication(cfg.handlerUpdateLogItem))
+	handler.Handle("DELETE /api/logs/{log_item_id}", cfg.middlewareAuthentication(cfg.handlerDeleteLogItem))
+
 	// Admin
 	handler.HandleFunc("POST /admin/reset", cfg.handlerReset)
 	/*handler.Handle("GET /authorized-endpoint", cfg.middlewareAuthentication(func(w http.ResponseWriter, res *http.Request, userId uuid.UUID) {
