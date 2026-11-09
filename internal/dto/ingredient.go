@@ -6,7 +6,7 @@ import (
 )
 
 type Ingredient struct {
-	Id            int64           `json:"id"`
+	Id            uuid.UUID       `json:"id"`
 	Name          string          `json:"name"`
 	Fats          decimal.Decimal `json:"fats"`
 	Carbohydrates decimal.Decimal `json:"carbohydrates"`

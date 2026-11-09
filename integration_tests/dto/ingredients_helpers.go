@@ -2,7 +2,7 @@ package dto
 
 import (
 	"fmt"
-	//	"github.com/google/uuid"
+	"github.com/google/uuid"
 	//	"github.com/jmservic/feast/integration_tests/constants"
 	"github.com/jmservic/feast/integration_tests/constants"
 	"github.com/jmservic/feast/integration_tests/helpers"
@@ -35,7 +35,7 @@ func (c Client) CreateIngredient(token string, params map[IngredientKeys]any) *h
 	return res
 }
 
-func (c Client) GetIngredient(token string, id int64) *http.Response {
+func (c Client) GetIngredient(token string, id uuid.UUID) *http.Response {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(c.feastUrl+constants.IngredientsIdPath, id), nil)
 	if err != nil {
 		c.t.Fatalf("Error occurred when creating the get request: %v", err)
@@ -69,7 +69,7 @@ func (c Client) GetIngredients(token, query string) *http.Response {
 	return res
 }
 
-func (c Client) UpdateIngredient(token string, id int64, updates map[string]any) *http.Response {
+func (c Client) UpdateIngredient(token string, id uuid.UUID, updates map[string]any) *http.Response {
 	body := helpers.CreateJSONReader(updates, c.t)
 	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf(c.feastUrl+constants.IngredientsIdPath, id), body)
 	if err != nil {
@@ -85,7 +85,7 @@ func (c Client) UpdateIngredient(token string, id int64, updates map[string]any)
 	return res
 }
 
-func (c Client) DeleteIngredient(token string, id int64) *http.Response {
+func (c Client) DeleteIngredient(token string, id uuid.UUID) *http.Response {
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf(c.feastUrl+constants.IngredientsIdPath, id), nil)
 	if err != nil {
 		c.t.Fatalf("Error occurred when creating the get request: %v", err)

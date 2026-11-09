@@ -29,7 +29,7 @@ SELECT
 	id,
 	ingredient_id
 FROM ingredient_servings
-WHERE ingredient_id = ANY(@ingredient_ids::int[]);
+WHERE ingredient_id = ANY(@ingredient_ids::uuid[]);
 
 -- name: DeleteIngredientServings :exec
 DELETE FROM ingredient_servings

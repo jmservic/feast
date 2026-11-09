@@ -8,8 +8,33 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
+
+type FoodCategory struct {
+	ID   int
+	Name string
+}
+
+type FoodLog struct {
+	ID               uuid.UUID
+	Name             string
+	Date             pgtype.Date
+	Category         int
+	Fats             decimal.Decimal
+	Carbohydrates    decimal.Decimal
+	Protein          decimal.Decimal
+	Calories         decimal.Decimal
+	UnitType         bool
+	Brand            *string
+	IngredientsID    *uuid.UUID
+	Quantity         decimal.Decimal
+	ServingsName     string
+	ServingsQuantity decimal.Decimal
+	UserID           uuid.UUID
+	CreatedAt        pgtype.Timestamptz
+}
 
 type Household struct {
 	ID        uuid.UUID
@@ -42,7 +67,7 @@ type HouseholdRole struct {
 }
 
 type Ingredient struct {
-	ID            int64
+	ID            uuid.UUID
 	Name          string
 	Fats          decimal.Decimal
 	Carbohydrates decimal.Decimal
@@ -57,7 +82,7 @@ type Ingredient struct {
 type IngredientServing struct {
 	Name         string
 	Quantity     decimal.Decimal
-	IngredientID int64
+	IngredientID uuid.UUID
 	ID           int16
 }
 
@@ -80,7 +105,7 @@ type User struct {
 }
 
 type VFood struct {
-	ID            int64
+	ID            uuid.UUID
 	Name          string
 	Fats          decimal.Decimal
 	Carbohydrates decimal.Decimal
@@ -95,6 +120,6 @@ type VFood struct {
 type VServing struct {
 	Name         string
 	Quantity     decimal.Decimal
-	IngredientID int64
+	IngredientID uuid.UUID
 	ID           int16
 }

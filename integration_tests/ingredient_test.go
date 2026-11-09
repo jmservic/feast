@@ -1,8 +1,8 @@
 package integration
 
 import (
-	//	"github.com/google/uuid"
 	"errors"
+	"github.com/google/uuid"
 	"net/http"
 	"testing"
 
@@ -525,7 +525,7 @@ func TestGetIngredient(t *testing.T) {
 
 	testCases := []struct {
 		testName      string
-		ingredientsId int64
+		ingredientsId uuid.UUID
 		ingredient    dto.IngredientResponse
 		statusCode    int
 	}{
@@ -537,7 +537,7 @@ func TestGetIngredient(t *testing.T) {
 		},
 		{
 			testName:      "Unsuccessfully get nonexistent ingredient",
-			ingredientsId: 1334,
+			ingredientsId: uuid.New(),
 			statusCode:    http.StatusNotFound,
 		},
 	}
@@ -1030,7 +1030,7 @@ func TestUpdateIngredient(t *testing.T) {
 
 	testCases := []struct {
 		testName, token string
-		ingredientId    int64
+		ingredientId    uuid.UUID
 		payload         map[string]any
 		statusCode      int
 	}{
@@ -1164,7 +1164,7 @@ func TestUpdateIngredient(t *testing.T) {
 		},
 		{
 			testName:     "Fail to update a nonexistent ingredient",
-			ingredientId: -1,
+			ingredientId: uuid.New(),
 			statusCode:   http.StatusNotFound,
 			token:        token,
 		},
@@ -1423,7 +1423,7 @@ func TestDeleteIngredient(t *testing.T) {
 
 	testCases := []struct {
 		testName, ownerToken string
-		ingredientId         int64
+		ingredientId         uuid.UUID
 		statusCode           int
 	}{
 		{
@@ -1440,7 +1440,7 @@ func TestDeleteIngredient(t *testing.T) {
 		},
 		{
 			testName:     "Fail to delete a nonexistent ingredient",
-			ingredientId: -1,
+			ingredientId: uuid.New(),
 			statusCode:   http.StatusNotFound,
 			ownerToken:   token,
 		},

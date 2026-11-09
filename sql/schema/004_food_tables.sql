@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE ingredients (
-	id bigserial PRIMARY KEY,
+	id uuid PRIMARY KEY DEFAULT uuidv7(),
 	name text NOT NULL,
 	fats numeric(26, 16) NOT NULL,
 	carbohydrates numeric(26, 16) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE ingredients (
 CREATE TABLE ingredient_servings (
 	name text NOT NULL,
 	quantity decimal NOT NULL,
-	ingredient_id bigint NOT NULL REFERENCES ingredients (id) ON DELETE CASCADE,
+	ingredient_id uuid NOT NULL REFERENCES ingredients (id) ON DELETE CASCADE,
 	id smallint NOT NULL,
 	UNIQUE(ingredient_id, id) 
 );
@@ -53,7 +53,7 @@ CREATE TYPE serving_info AS (
 -- +goose StatementBegin
 -- Update this to create and update. We need an integer id for the servings, so they can be targeted. 
 -- The ingredient_servings Unique will then be the ingredient_id and id
-CREATE OR REPLACE PROCEDURE create_ingredient_servings ( v_ingredient_id bigint, v_servings serving_info[] ) AS $$
+CREATE OR REPLACE PROCEDURE create_ingredient_servings ( v_ingredient_id uuid, v_servings serving_info[] ) AS $$
 DECLARE
 	v_serving_info serving_info;
 	serving_id_start smallint;

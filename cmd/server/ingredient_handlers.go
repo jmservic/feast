@@ -11,7 +11,7 @@ import (
 	"github.com/shopspring/decimal"
 	"net/http"
 	"slices"
-	"strconv"
+	//"strconv"
 	"strings"
 	"sync"
 )
@@ -43,8 +43,8 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 	}
 
 	ingredients := make([]dto.Ingredient, 0, len(storedIngredients))
-	ingredientIndexes := make(map[int64]int, len(storedIngredients))
-	ingredientIds := make([]int, 0, len(storedIngredients))
+	ingredientIndexes := make(map[uuid.UUID]int, len(storedIngredients))
+	ingredientIds := make([]uuid.UUID, 0, len(storedIngredients))
 
 	for index, storedIngredient := range storedIngredients {
 		var brand string
@@ -65,7 +65,7 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 		}
 
 		ingredients = append(ingredients, ingredient)
-		ingredientIds = append(ingredientIds, int(ingredient.Id))
+		ingredientIds = append(ingredientIds, ingredient.Id)
 		ingredientIndexes[ingredient.Id] = index
 	}
 
@@ -90,9 +90,9 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 }
 
 func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	ingredientId, err := strconv.ParseInt(r.PathValue("ingredient_id"), 10, 64)
+	ingredientId, err := uuid.Parse(r.PathValue("ingredient_id"))
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, constants.InvalidIntStringErrStr, err)
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
 		return
 	}
 
@@ -299,9 +299,9 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 }
 
 func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	ingredientId, err := strconv.ParseInt(r.PathValue("ingredient_id"), 10, 64)
+	ingredientId, err := uuid.Parse(r.PathValue("ingredient_id"))
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, constants.InvalidIntStringErrStr, err)
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
 		return
 	}
 
@@ -543,9 +543,9 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 }
 
 func (cfg apiConfig) handlerDeleteIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	ingredientId, err := strconv.ParseInt(r.PathValue("ingredient_id"), 10, 64)
+	ingredientId, err := uuid.Parse(r.PathValue("ingredient_id"))
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, constants.InvalidIntStringErrStr, err)
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
 		return
 	}
 

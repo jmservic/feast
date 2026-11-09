@@ -6,10 +6,12 @@ import (
 
 const (
 	BeginTransactionErrStr                       string = "error creating a database transaction"
+	ConvertTimeToDbDateErrStr                    string = "error converting struct time to pgType.Date"
 	CommitTransactionErrStr                      string = "error commiting the database transaction"
 	EmptyPasswordErrStr                          string = "password field cannot be empty"
 	EmptyParameterErrStr                         string = "a required parameter is empty"
 	GetIngredientErrStr                          string = "error getting ingredient by id"
+	FoodItemCreationErrStr                       string = "error creating a new food item"
 	GetIngredientsErrStr                         string = "error getting ingredients by query"
 	GetIngredientServingsErrStr                  string = "error getting ingredient servings"
 	GetIngredientsServingsErrStr                 string = "error getting ingredient servings by ids"
