@@ -19,7 +19,25 @@ type FoodItem struct {
 	Unittype       Measurement     `json:"unittype"`
 	Amount         decimal.Decimal `json:"amount"`
 	ServingsName   string          `json:"servings_name"`
-	ServingsAmount decimal.Decimal `json:"servings_amount"`
+	ServingsAmount decimal.Decimal `json:"amount_in_servings"`
+	UserId         uuid.UUID       `json:"user_id"`
 }
 
 type FoodItemKeys string
+
+const (
+	FoodItemId             FoodItemKeys = "id"
+	FoodItemDate           FoodItemKeys = "date"
+	FoodItemCategory       FoodItemKeys = "category"
+	FoodItemName           FoodItemKeys = "name"
+	FoodItemFats           FoodItemKeys = "fats"
+	FoodItemCarbs          FoodItemKeys = "carboyhydrates"
+	FoodItemProtein        FoodItemKeys = "protein"
+	FoodItemCalories       FoodItemKeys = "calories"
+	FoodItemBrand          FoodItemKeys = "brand"
+	FoodItemUnitType       FoodItemKeys = "unittype"
+	FoodItemAmount         FoodItemKeys = "amount"
+	FoodItemServingsName   FoodItemKeys = "servings_name"
+	FoodItemServingsAmount FoodItemKeys = "amount_in_servings"
+	FoodItemUserId         FoodItemKeys = "user_id"
+)

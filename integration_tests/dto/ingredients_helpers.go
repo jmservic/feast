@@ -3,7 +3,6 @@ package dto
 import (
 	"fmt"
 	"github.com/google/uuid"
-	//	"github.com/jmservic/feast/integration_tests/constants"
 	"github.com/jmservic/feast/integration_tests/constants"
 	"github.com/jmservic/feast/integration_tests/helpers"
 	//"io"

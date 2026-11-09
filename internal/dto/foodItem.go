@@ -19,5 +19,6 @@ type FoodItem struct {
 	Unittype       Measurement     `json:"unittype"`
 	Amount         decimal.Decimal `json:"amount"`
 	ServingsName   string          `json:"servings_name"`
-	ServingsAmount decimal.Decimal `json:"servings_amount"`
+	ServingsAmount decimal.Decimal `json:"amount_in_servings"`
+	UserId         uuid.UUID       `json:"user_id"`
 }

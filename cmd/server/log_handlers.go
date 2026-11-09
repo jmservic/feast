@@ -87,7 +87,7 @@ func (cfg apiConfig) handlerCreateFoodItem(w http.ResponseWriter, r *http.Reques
 		brand = *storedFoodItem.Brand
 	}
 
-	respondWithJSON(w, http.StatusOK, dto.FoodItem{
+	respondWithJSON(w, http.StatusCreated, dto.FoodItem{
 		Id:             storedFoodItem.ID,
 		Date:           storedFoodItem.Date.Time,
 		Category:       dto.Category(storedFoodItem.Category),
@@ -101,6 +101,7 @@ func (cfg apiConfig) handlerCreateFoodItem(w http.ResponseWriter, r *http.Reques
 		Amount:         storedFoodItem.Quantity,
 		ServingsName:   storedFoodItem.ServingsName,
 		ServingsAmount: storedFoodItem.ServingsQuantity,
+		UserId:         userId,
 	})
 
 }

@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"errors"
 	"github.com/google/uuid"
 	"net/http"
 	"testing"
@@ -11,25 +10,6 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
-
-func CreateDecimal(value any) (decimal.Decimal, error) {
-	switch v := value.(type) {
-	case int:
-		return decimal.NewFromInt(int64(v)), nil
-	case int32:
-		return decimal.NewFromInt32(v), nil
-	case int64:
-		return decimal.NewFromInt(v), nil
-	case string:
-		return decimal.NewFromString(v)
-	case float32:
-		return decimal.NewFromFloat32(v), nil
-	case float64:
-		return decimal.NewFromFloat(v), nil
-	default:
-		return decimal.Zero, errors.New("Unknown type!!")
-	}
-}
 
 func TestCreateIngredient(t *testing.T) {
 	helpers.LoadDotEnv()
@@ -370,7 +350,7 @@ func TestCreateIngredient(t *testing.T) {
 				//t.Log(ingredient)
 
 				// compare values to the map
-				amount, err := CreateDecimal(testCase.params[dto.IngredientAmount])
+				amount, err := helpers.CreateDecimal(testCase.params[dto.IngredientAmount])
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -382,7 +362,7 @@ func TestCreateIngredient(t *testing.T) {
 				}
 
 				if proteinVal, ok := testCase.params[dto.IngredientProtein]; ok {
-					protein, err := CreateDecimal(proteinVal)
+					protein, err := helpers.CreateDecimal(proteinVal)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -397,7 +377,7 @@ func TestCreateIngredient(t *testing.T) {
 				}
 
 				if fatsVal, ok := testCase.params[dto.IngredientFats]; ok {
-					fats, err := CreateDecimal(fatsVal)
+					fats, err := helpers.CreateDecimal(fatsVal)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -412,7 +392,7 @@ func TestCreateIngredient(t *testing.T) {
 				}
 
 				if carbVal, ok := testCase.params[dto.IngredientCarbs]; ok {
-					carbs, err := CreateDecimal(carbVal)
+					carbs, err := helpers.CreateDecimal(carbVal)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -427,7 +407,7 @@ func TestCreateIngredient(t *testing.T) {
 				}
 
 				if calorieVal, ok := testCase.params[dto.IngredientCalories]; ok {
-					calories, err := CreateDecimal(calorieVal)
+					calories, err := helpers.CreateDecimal(calorieVal)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -1477,7 +1457,7 @@ func TestDeleteIngredient(t *testing.T) {
 func updateIngredientResponse(ing dto.IngredientResponse, updates map[string]any) dto.IngredientResponse {
 	amount := decimal.NewFromInt(1)
 	if amountVal, ok := updates[string(dto.IngredientAmount)]; ok {
-		amount, _ = CreateDecimal(amountVal)
+		amount, _ = helpers.CreateDecimal(amountVal)
 	}
 
 	for key, value := range updates {
@@ -1486,16 +1466,16 @@ func updateIngredientResponse(ing dto.IngredientResponse, updates map[string]any
 		case dto.IngredientName:
 			ing.Name = value.(string)
 		case dto.IngredientFats:
-			decimalVal, _ := CreateDecimal(value)
+			decimalVal, _ := helpers.CreateDecimal(value)
 			ing.Fats = decimalVal.Div(amount)
 		case dto.IngredientCarbs:
-			decimalVal, _ := CreateDecimal(value)
+			decimalVal, _ := helpers.CreateDecimal(value)
 			ing.Carbohydrates = decimalVal.Div(amount)
 		case dto.IngredientProtein:
-			decimalVal, _ := CreateDecimal(value)
+			decimalVal, _ := helpers.CreateDecimal(value)
 			ing.Protein = decimalVal.Div(amount)
 		case dto.IngredientCalories:
-			decimalVal, _ := CreateDecimal(value)
+			decimalVal, _ := helpers.CreateDecimal(value)
 			ing.Calories = decimalVal.Div(amount)
 		case dto.IngredientUnitType:
 			switch typeVal := value.(type) {
