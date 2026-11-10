@@ -16,7 +16,7 @@ type FoodItem struct {
 	Protein        decimal.Decimal `json:"protein"`
 	Calories       decimal.Decimal `json:"calories"`
 	Brand          string          `json:"brand"`
-	Unittype       Measurement     `json:"unittype"`
+	UnitType       Measurement     `json:"unit_type"`
 	Amount         decimal.Decimal `json:"amount"`
 	ServingsName   string          `json:"servings_name"`
 	ServingsAmount decimal.Decimal `json:"amount_in_servings"`

@@ -422,11 +422,11 @@ func TestCreateIngredient(t *testing.T) {
 				}
 
 				if unitType, ok := testCase.params[dto.IngredientUnitType]; ok {
-					if unitType != ingredient.Unittype {
-						t.Fatalf("Expected unit type to be %v, received %v", unitType, ingredient.Unittype)
+					if unitType != ingredient.UnitType {
+						t.Fatalf("Expected unit type to be %v, received %v", unitType, ingredient.UnitType)
 					}
 
-				} else if ingredient.Unittype {
+				} else if ingredient.UnitType {
 					t.Fatal("Expected unit type to default to false, received true")
 
 				}
@@ -1480,9 +1480,9 @@ func updateIngredientResponse(ing dto.IngredientResponse, updates map[string]any
 		case dto.IngredientUnitType:
 			switch typeVal := value.(type) {
 			case bool:
-				ing.Unittype = dto.Measurement(typeVal)
+				ing.UnitType = dto.Measurement(typeVal)
 			case dto.Measurement:
-				ing.Unittype = typeVal
+				ing.UnitType = typeVal
 			}
 		case dto.IngredientServings:
 			ing.Servings = value.([]dto.ServingInfo)

@@ -97,7 +97,7 @@ func (cfg apiConfig) handlerCreateFoodItem(w http.ResponseWriter, r *http.Reques
 		Protein:        storedFoodItem.Protein,
 		Calories:       storedFoodItem.Calories,
 		Brand:          brand,
-		Unittype:       dto.Measurement(storedFoodItem.UnitType),
+		UnitType:       dto.Measurement(storedFoodItem.UnitType),
 		Amount:         storedFoodItem.Quantity,
 		ServingsName:   storedFoodItem.ServingsName,
 		ServingsAmount: storedFoodItem.ServingsQuantity,

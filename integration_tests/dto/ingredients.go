@@ -17,7 +17,7 @@ type IngredientResponse struct {
 	Brand         string          `json:"brand"`
 	UserId        *uuid.UUID      `json:"user_id"`
 	Amount        decimal.Decimal `json:"amount"`
-	Unittype      Measurement     `json:"unittype"`
+	UnitType      Measurement     `json:"unit_type"`
 	Servings      []ServingInfo   `json:"servings"`
 }
 
@@ -33,7 +33,7 @@ const (
 	IngredientBrand           IngredientKeys = "brand"
 	IngredientUserId          IngredientKeys = "user_id"
 	IngredientAmount          IngredientKeys = "amount"
-	IngredientUnitType        IngredientKeys = "unittype"
+	IngredientUnitType        IngredientKeys = "unit_type"
 	IngredientServings        IngredientKeys = "servings"
 	IngredientRemovedServings IngredientKeys = "removed_servings"
 )

@@ -58,7 +58,7 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 			Carbohydrates: storedIngredient.Carbohydrates,
 			Protein:       storedIngredient.Protein,
 			Calories:      storedIngredient.Calories,
-			Unittype:      dto.Measurement(storedIngredient.UnitType),
+			UnitType:      dto.Measurement(storedIngredient.UnitType),
 			Id:            storedIngredient.ID,
 			Brand:         brand,
 			UserId:        storedIngredient.UserID,
@@ -117,7 +117,7 @@ func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request
 		ingredient.Carbohydrates = storedIngredient.Carbohydrates
 		ingredient.Protein = storedIngredient.Protein
 		ingredient.Calories = storedIngredient.Calories
-		ingredient.Unittype = dto.Measurement(storedIngredient.UnitType)
+		ingredient.UnitType = dto.Measurement(storedIngredient.UnitType)
 		ingredient.Brand = brand
 		ingredient.UserId = storedIngredient.UserID
 		ingredient.Id = storedIngredient.ID
@@ -232,7 +232,7 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 		Carbohydrates: newIngredient.Carbohydrates.Div(newIngredient.Amount),
 		Protein:       newIngredient.Protein.Div(newIngredient.Amount),
 		Calories:      newIngredient.Calories.Div(newIngredient.Amount),
-		UnitType:      bool(newIngredient.Unittype),
+		UnitType:      bool(newIngredient.UnitType),
 		Brand:         brandStoreVal,
 		UserID:        &userId,
 	})
@@ -291,7 +291,7 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 		Protein:       storedIngredient.Protein,
 		Calories:      storedIngredient.Calories,
 		Amount:        decimal.NewFromInt(1),
-		Unittype:      dto.Measurement(storedIngredient.UnitType),
+		UnitType:      dto.Measurement(storedIngredient.UnitType),
 		Brand:         brandRtnVal,
 		UserId:        storedIngredient.UserID,
 		Servings:      servings,
@@ -335,7 +335,7 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 		Calories        *decimal.Decimal  `json:"calories"`
 		Brand           *string           `json:"brand"`
 		Amount          *decimal.Decimal  `json:"amount"`
-		Unittype        *dto.Measurement  `json:"unittype"`
+		UnitType        *dto.Measurement  `json:"unit_type"`
 		Servings        []dto.ServingInfo `json:"servings"`
 		RemovedServings []int16           `json:"removed_servings"`
 	}{}
@@ -417,8 +417,8 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 		updateParams.Brand = storedIngredient.Brand
 	}
 
-	if params.Unittype != nil {
-		updateParams.UnitType = bool(*params.Unittype)
+	if params.UnitType != nil {
+		updateParams.UnitType = bool(*params.UnitType)
 	} else {
 		updateParams.UnitType = storedIngredient.UnitType
 	}
@@ -535,7 +535,7 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 		Protein:       updatedIngredient.Protein,
 		Calories:      updatedIngredient.Calories,
 		Amount:        decimal.NewFromInt(1),
-		Unittype:      dto.Measurement(updatedIngredient.UnitType),
+		UnitType:      dto.Measurement(updatedIngredient.UnitType),
 		Brand:         brandRtnVal,
 		UserId:        updatedIngredient.UserID,
 		Servings:      rtnServings,

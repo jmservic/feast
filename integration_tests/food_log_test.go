@@ -205,7 +205,7 @@ func TestFoodItemCreate(t *testing.T) {
 					Protein:        ingredient.Protein.Mul(amount),
 					Calories:       ingredient.Calories.Mul(amount),
 					Brand:          ingredient.Brand,
-					Unittype:       ingredient.Unittype,
+					UnitType:       ingredient.UnitType,
 					Amount:         amount,
 					ServingsName:   testCase.params[dto.FoodItemServingsName].(string),
 					ServingsAmount: servingsAmount,

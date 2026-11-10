@@ -15,7 +15,7 @@ type Ingredient struct {
 	Brand         string          `json:"brand"`
 	UserId        *uuid.UUID      `json:"user_id"`
 	Amount        decimal.Decimal `json:"amount"`
-	Unittype      Measurement     `json:"unittype"`
+	UnitType      Measurement     `json:"unit_type"`
 	Servings      []ServingInfo   `json:"servings"`
 }
 

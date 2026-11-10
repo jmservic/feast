@@ -16,7 +16,7 @@ type FoodItem struct {
 	Protein        decimal.Decimal `json:"protein"`
 	Calories       decimal.Decimal `json:"calories"`
 	Brand          string          `json:"brand"`
-	Unittype       Measurement     `json:"unittype"`
+	UnitType       Measurement     `json:"unit_type"`
 	Amount         decimal.Decimal `json:"amount"`
 	ServingsName   string          `json:"servings_name"`
 	ServingsAmount decimal.Decimal `json:"amount_in_servings"`
@@ -35,7 +35,7 @@ const (
 	FoodItemProtein        FoodItemKeys = "protein"
 	FoodItemCalories       FoodItemKeys = "calories"
 	FoodItemBrand          FoodItemKeys = "brand"
-	FoodItemUnitType       FoodItemKeys = "unittype"
+	FoodItemUnitType       FoodItemKeys = "unit_type"
 	FoodItemAmount         FoodItemKeys = "amount"
 	FoodItemServingsName   FoodItemKeys = "servings_name"
 	FoodItemServingsAmount FoodItemKeys = "amount_in_servings"
