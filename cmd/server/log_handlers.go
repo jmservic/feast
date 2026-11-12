@@ -106,8 +106,113 @@ func (cfg apiConfig) handlerCreateFoodItem(w http.ResponseWriter, r *http.Reques
 
 }
 
+// remove the userID from the database retrievals / update, explicitly deny on another user's food. Or maybe just keep it.. we'll see
 func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	foodItemId, err := uuid.Parse(r.PathValue("log_item_id"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
+		return
+	}
 
+	storedFoodItem, err := cfg.db.GetFoodItemById(r.Context(), database.GetFoodItemByIdParams{
+		ID:     foodItemId,
+		UserID: userId,
+	})
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetFoodItemErrStr, err)
+		return
+	}
+
+	itemUpdateInfo := struct {
+		Id               uuid.UUID        `json:"id"`
+		Date             *time.Time       `json:"date"`
+		Category         *dto.Category    `json:"category"`
+		Amount           *decimal.Decimal `json:"amount"`
+		ServingsName     *string          `json:"servings_name"`
+		AmountInServings *decimal.Decimal `json:"amount_in_servings"`
+	}{}
+
+	foodItemUpdateParams := database.UpdateFoodItemParams{}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&itemUpdateInfo); err != nil {
+		respondWithError(w, http.StatusInternalServerError, constants.JsonDecodeErrStr, err)
+		return
+	}
+
+	if itemUpdateInfo.Date != nil {
+		date := pgtype.Date{}
+		err = date.Scan(itemUpdateInfo.Date)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, constants.ConvertTimeToDbDateErrStr, err)
+			return
+		}
+
+		foodItemUpdateParams.Date = date
+	} else {
+		foodItemUpdateParams.Date = storedFoodItem.Date
+	}
+
+	if itemUpdateInfo.Category != nil {
+		foodItemUpdateParams.Category = int(*itemUpdateInfo.Category)
+	} else {
+		foodItemUpdateParams.Category = storedFoodItem.Category
+	}
+
+	if itemUpdateInfo.Amount != nil && itemUpdateInfo.Amount.IsPositive() && *itemUpdateInfo.Amount != storedFoodItem.Quantity {
+		oldAmount := foodItemUpdateParams.Quantity
+		newAmount := *itemUpdateInfo.Amount
+		foodItemUpdateParams.Fats = storedFoodItem.Fats.Div(oldAmount).Mul(newAmount)
+		foodItemUpdateParams.Carbohydrates = storedFoodItem.Carbohydrates.Div(oldAmount).Mul(newAmount)
+		foodItemUpdateParams.Protein = storedFoodItem.Protein.Div(oldAmount).Mul(newAmount)
+		foodItemUpdateParams.Calories = storedFoodItem.Calories.Div(oldAmount).Mul(newAmount)
+	} else {
+		foodItemUpdateParams.Fats = storedFoodItem.Fats
+		foodItemUpdateParams.Carbohydrates = storedFoodItem.Carbohydrates
+		foodItemUpdateParams.Protein = storedFoodItem.Protein
+		foodItemUpdateParams.Calories = storedFoodItem.Calories
+	}
+
+	if itemUpdateInfo.ServingsName != nil && *itemUpdateInfo.ServingsName != "" {
+		foodItemUpdateParams.ServingsName = *itemUpdateInfo.ServingsName
+	} else {
+		foodItemUpdateParams.ServingsName = storedFoodItem.ServingsName
+	}
+
+	if itemUpdateInfo.AmountInServings != nil && !itemUpdateInfo.AmountInServings.IsNegative() {
+		foodItemUpdateParams.ServingsQuantity = *itemUpdateInfo.AmountInServings
+	} else {
+		foodItemUpdateParams.ServingsQuantity = storedFoodItem.ServingsQuantity
+	}
+
+	updatedFoodItem, err := cfg.db.UpdateFoodItem(r.Context(), foodItemUpdateParams)
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.FoodItemUpdateErrStr, err)
+		return
+	}
+
+	brand := ""
+	if updatedFoodItem.Brand != nil {
+		brand = *updatedFoodItem.Brand
+	}
+
+	respondWithJSON(w, http.StatusOK, dto.FoodItem{
+		Id:             updatedFoodItem.ID,
+		Date:           updatedFoodItem.Date.Time,
+		Category:       dto.Category(updatedFoodItem.Category),
+		Name:           updatedFoodItem.Name,
+		Fats:           updatedFoodItem.Fats,
+		Carbohydrates:  updatedFoodItem.Carbohydrates,
+		Protein:        updatedFoodItem.Protein,
+		Calories:       updatedFoodItem.Calories,
+		Brand:          brand,
+		UnitType:       dto.Measurement(updatedFoodItem.UnitType),
+		Amount:         updatedFoodItem.Quantity,
+		ServingsName:   updatedFoodItem.ServingsName,
+		ServingsAmount: updatedFoodItem.ServingsQuantity,
+		UserId:         userId,
+	})
 }
 
 func (cfg apiConfig) handlerDeleteFoodItem(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {

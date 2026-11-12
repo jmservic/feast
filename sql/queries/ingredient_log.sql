@@ -17,3 +17,23 @@ $13,
 $14
 )
 RETURNING *;
+
+-- name: GetFoodItemById :one
+SELECT * FROM food_log
+WHERE id = $1 AND user_id = $2;
+
+-- name: UpdateFoodItem :one
+UPDATE food_log
+SET
+	date = $2,
+	category = $3,
+	fats = $4,
+	carbohydrates = $5,
+	protein = $6,
+	calories = $7,
+	quantity = $8,
+	servings_name = $9,
+	servings_quantity = $10
+WHERE id = $1 AND user_id = $2
+RETURNING *;
+

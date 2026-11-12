@@ -22,6 +22,6 @@ func CreateDecimal(value any) (decimal.Decimal, error) {
 	case decimal.Decimal:
 		return v, nil
 	default:
-		return decimal.Zero, fmt.Errorf("Unknown type %T!!", v)
+		return decimal.Zero, fmt.Errorf("unknown type %T", v)
 	}
 }

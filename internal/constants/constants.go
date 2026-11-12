@@ -12,6 +12,8 @@ const (
 	EmptyParameterErrStr                         string = "a required parameter is empty"
 	GetIngredientErrStr                          string = "error getting ingredient by id"
 	FoodItemCreationErrStr                       string = "error creating a new food item"
+	FoodItemUpdateErrStr                         string = "error updating food item"
+	GetFoodItemErrStr                            string = "error getting food item by id"
 	GetIngredientsErrStr                         string = "error getting ingredients by query"
 	GetIngredientServingsErrStr                  string = "error getting ingredient servings"
 	GetIngredientsServingsErrStr                 string = "error getting ingredient servings by ids"

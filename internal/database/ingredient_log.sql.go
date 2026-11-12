@@ -89,3 +89,101 @@ func (q *Queries) CreateFoodItem(ctx context.Context, arg CreateFoodItemParams) 
 	)
 	return i, err
 }
+
+const getFoodItemById = `-- name: GetFoodItemById :one
+SELECT id, name, date, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, quantity, servings_name, servings_quantity, user_id, created_at FROM food_log
+WHERE id = $1 AND user_id = $2
+`
+
+type GetFoodItemByIdParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetFoodItemById(ctx context.Context, arg GetFoodItemByIdParams) (FoodLog, error) {
+	row := q.db.QueryRow(ctx, getFoodItemById, arg.ID, arg.UserID)
+	var i FoodLog
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Date,
+		&i.Category,
+		&i.Fats,
+		&i.Carbohydrates,
+		&i.Protein,
+		&i.Calories,
+		&i.UnitType,
+		&i.Brand,
+		&i.IngredientsID,
+		&i.Quantity,
+		&i.ServingsName,
+		&i.ServingsQuantity,
+		&i.UserID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateFoodItem = `-- name: UpdateFoodItem :one
+UPDATE food_log
+SET
+	date = $2,
+	category = $3,
+	fats = $4,
+	carbohydrates = $5,
+	protein = $6,
+	calories = $7,
+	quantity = $8,
+	servings_name = $9,
+	servings_quantity = $10
+WHERE id = $1 AND user_id = $2
+RETURNING id, name, date, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, quantity, servings_name, servings_quantity, user_id, created_at
+`
+
+type UpdateFoodItemParams struct {
+	ID               uuid.UUID
+	Date             pgtype.Date
+	Category         int
+	Fats             decimal.Decimal
+	Carbohydrates    decimal.Decimal
+	Protein          decimal.Decimal
+	Calories         decimal.Decimal
+	Quantity         decimal.Decimal
+	ServingsName     string
+	ServingsQuantity decimal.Decimal
+}
+
+func (q *Queries) UpdateFoodItem(ctx context.Context, arg UpdateFoodItemParams) (FoodLog, error) {
+	row := q.db.QueryRow(ctx, updateFoodItem,
+		arg.ID,
+		arg.Date,
+		arg.Category,
+		arg.Fats,
+		arg.Carbohydrates,
+		arg.Protein,
+		arg.Calories,
+		arg.Quantity,
+		arg.ServingsName,
+		arg.ServingsQuantity,
+	)
+	var i FoodLog
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Date,
+		&i.Category,
+		&i.Fats,
+		&i.Carbohydrates,
+		&i.Protein,
+		&i.Calories,
+		&i.UnitType,
+		&i.Brand,
+		&i.IngredientsID,
+		&i.Quantity,
+		&i.ServingsName,
+		&i.ServingsQuantity,
+		&i.UserID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
