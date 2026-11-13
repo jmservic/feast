@@ -20,7 +20,7 @@ RETURNING *;
 
 -- name: GetFoodItemById :one
 SELECT * FROM food_log
-WHERE id = $1 AND user_id = $2;
+WHERE id = $1;
 
 -- name: UpdateFoodItem :one
 UPDATE food_log
@@ -34,6 +34,6 @@ SET
 	quantity = $8,
 	servings_name = $9,
 	servings_quantity = $10
-WHERE id = $1 AND user_id = $2
+WHERE id = $1 
 RETURNING *;
 

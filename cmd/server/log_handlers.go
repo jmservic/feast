@@ -19,6 +19,48 @@ import (
 
 //FoodLog, DailyLog, FoodItem
 
+func (cfg apiConfig) handlerGetFoodItem(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	foodItemId, err := uuid.Parse(r.PathValue("log_item_id"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
+		return
+	}
+
+	storedFoodItem, err := cfg.db.GetFoodItemById(r.Context(), foodItemId)
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetFoodItemErrStr, err)
+		return
+	}
+
+	if storedFoodItem.UserID != userId {
+		respondWithError(w, http.StatusForbidden, constants.NotAuthorizedErrStr, nil)
+		return
+	}
+
+	var brand string
+	if storedFoodItem.Brand != nil {
+		brand = *storedFoodItem.Brand
+	}
+
+	respondWithJSON(w, http.StatusCreated, dto.FoodItem{
+		Id:             storedFoodItem.ID,
+		Date:           storedFoodItem.Date.Time,
+		Category:       dto.Category(storedFoodItem.Category),
+		Name:           storedFoodItem.Name,
+		Fats:           storedFoodItem.Fats,
+		Carbohydrates:  storedFoodItem.Carbohydrates,
+		Protein:        storedFoodItem.Protein,
+		Calories:       storedFoodItem.Calories,
+		Brand:          brand,
+		UnitType:       dto.Measurement(storedFoodItem.UnitType),
+		Amount:         storedFoodItem.Quantity,
+		ServingsName:   storedFoodItem.ServingsName,
+		ServingsAmount: storedFoodItem.ServingsQuantity,
+		UserId:         userId,
+	})
+}
+
 func (cfg apiConfig) handlerGetLogs(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
 	// Need name, date, category, fats, protein, carbs, calories, unit type, brand, ingredient id, quantity,serving name, serving quantity
 }
@@ -103,10 +145,8 @@ func (cfg apiConfig) handlerCreateFoodItem(w http.ResponseWriter, r *http.Reques
 		ServingsAmount: storedFoodItem.ServingsQuantity,
 		UserId:         userId,
 	})
-
 }
 
-// remove the userID from the database retrievals / update, explicitly deny on another user's food. Or maybe just keep it.. we'll see
 func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
 	foodItemId, err := uuid.Parse(r.PathValue("log_item_id"))
 	if err != nil {
@@ -114,13 +154,15 @@ func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	storedFoodItem, err := cfg.db.GetFoodItemById(r.Context(), database.GetFoodItemByIdParams{
-		ID:     foodItemId,
-		UserID: userId,
-	})
+	storedFoodItem, err := cfg.db.GetFoodItemById(r.Context(), foodItemId)
 
 	if err != nil {
 		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetFoodItemErrStr, err)
+		return
+	}
+
+	if storedFoodItem.UserID != userId {
+		respondWithError(w, http.StatusForbidden, constants.NotAuthorizedErrStr, nil)
 		return
 	}
 

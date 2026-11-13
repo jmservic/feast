@@ -92,16 +92,11 @@ func (q *Queries) CreateFoodItem(ctx context.Context, arg CreateFoodItemParams) 
 
 const getFoodItemById = `-- name: GetFoodItemById :one
 SELECT id, name, date, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, quantity, servings_name, servings_quantity, user_id, created_at FROM food_log
-WHERE id = $1 AND user_id = $2
+WHERE id = $1
 `
 
-type GetFoodItemByIdParams struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
-}
-
-func (q *Queries) GetFoodItemById(ctx context.Context, arg GetFoodItemByIdParams) (FoodLog, error) {
-	row := q.db.QueryRow(ctx, getFoodItemById, arg.ID, arg.UserID)
+func (q *Queries) GetFoodItemById(ctx context.Context, id uuid.UUID) (FoodLog, error) {
+	row := q.db.QueryRow(ctx, getFoodItemById, id)
 	var i FoodLog
 	err := row.Scan(
 		&i.ID,
@@ -136,7 +131,7 @@ SET
 	quantity = $8,
 	servings_name = $9,
 	servings_quantity = $10
-WHERE id = $1 AND user_id = $2
+WHERE id = $1 
 RETURNING id, name, date, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, quantity, servings_name, servings_quantity, user_id, created_at
 `
 
