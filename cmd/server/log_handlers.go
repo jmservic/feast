@@ -167,7 +167,6 @@ func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Reques
 	}
 
 	itemUpdateInfo := struct {
-		Id               uuid.UUID        `json:"id"`
 		Date             *time.Time       `json:"date"`
 		Category         *dto.Category    `json:"category"`
 		Amount           *decimal.Decimal `json:"amount"`
@@ -175,7 +174,7 @@ func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Reques
 		AmountInServings *decimal.Decimal `json:"amount_in_servings"`
 	}{}
 
-	foodItemUpdateParams := database.UpdateFoodItemParams{}
+	foodItemUpdateParams := database.UpdateFoodItemParams{ID: foodItemId}
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&itemUpdateInfo); err != nil {
@@ -185,7 +184,7 @@ func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Reques
 
 	if itemUpdateInfo.Date != nil {
 		date := pgtype.Date{}
-		err = date.Scan(itemUpdateInfo.Date)
+		err = date.Scan(*itemUpdateInfo.Date)
 		if err != nil {
 			respondWithError(w, http.StatusBadRequest, constants.ConvertTimeToDbDateErrStr, err)
 			return
@@ -203,17 +202,19 @@ func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Reques
 	}
 
 	if itemUpdateInfo.Amount != nil && itemUpdateInfo.Amount.IsPositive() && *itemUpdateInfo.Amount != storedFoodItem.Quantity {
-		oldAmount := foodItemUpdateParams.Quantity
+		oldAmount := storedFoodItem.Quantity
 		newAmount := *itemUpdateInfo.Amount
 		foodItemUpdateParams.Fats = storedFoodItem.Fats.Div(oldAmount).Mul(newAmount)
 		foodItemUpdateParams.Carbohydrates = storedFoodItem.Carbohydrates.Div(oldAmount).Mul(newAmount)
 		foodItemUpdateParams.Protein = storedFoodItem.Protein.Div(oldAmount).Mul(newAmount)
 		foodItemUpdateParams.Calories = storedFoodItem.Calories.Div(oldAmount).Mul(newAmount)
+		foodItemUpdateParams.Quantity = newAmount
 	} else {
 		foodItemUpdateParams.Fats = storedFoodItem.Fats
 		foodItemUpdateParams.Carbohydrates = storedFoodItem.Carbohydrates
 		foodItemUpdateParams.Protein = storedFoodItem.Protein
 		foodItemUpdateParams.Calories = storedFoodItem.Calories
+		foodItemUpdateParams.Quantity = storedFoodItem.Quantity
 	}
 
 	if itemUpdateInfo.ServingsName != nil && *itemUpdateInfo.ServingsName != "" {

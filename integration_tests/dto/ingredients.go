@@ -2,6 +2,7 @@ package dto
 
 import (
 	"github.com/google/uuid"
+	"github.com/jmservic/feast/integration_tests/helpers"
 	"github.com/shopspring/decimal"
 	"slices"
 	"strings"
@@ -58,5 +59,45 @@ func (ing IngredientResponse) Normalize() IngredientResponse {
 	slices.SortFunc(ing.Servings, func(a, b ServingInfo) int {
 		return strings.Compare(a.Name, b.Name)
 	})
+	return ing
+}
+
+func (ing IngredientResponse) UpdateClone(updates map[string]any) IngredientResponse {
+	amount := decimal.NewFromInt(1)
+	if amountVal, ok := updates[string(IngredientAmount)]; ok {
+		amount, _ = helpers.CreateDecimal(amountVal)
+	}
+
+	for key, value := range updates {
+		ingKey := IngredientKeys(key)
+		switch ingKey {
+		case IngredientName:
+			ing.Name = value.(string)
+		case IngredientFats:
+			decimalVal, _ := helpers.CreateDecimal(value)
+			ing.Fats = decimalVal.Div(amount)
+		case IngredientCarbs:
+			decimalVal, _ := helpers.CreateDecimal(value)
+			ing.Carbohydrates = decimalVal.Div(amount)
+		case IngredientProtein:
+			decimalVal, _ := helpers.CreateDecimal(value)
+			ing.Protein = decimalVal.Div(amount)
+		case IngredientCalories:
+			decimalVal, _ := helpers.CreateDecimal(value)
+			ing.Calories = decimalVal.Div(amount)
+		case IngredientUnitType:
+			switch typeVal := value.(type) {
+			case bool:
+				ing.UnitType = Measurement(typeVal)
+			case Measurement:
+				ing.UnitType = typeVal
+			}
+		case IngredientServings:
+			ing.Servings = value.([]ServingInfo)
+		case IngredientBrand:
+			ing.Brand = value.(string)
+		}
+	}
+
 	return ing
 }

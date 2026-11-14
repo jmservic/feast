@@ -1315,7 +1315,7 @@ func TestUpdateIngredient(t *testing.T) {
 			)
 
 			if testCase.statusCode == http.StatusOK {
-				expectedIng = updateIngredientResponse(currIng, testCase.payload).Normalize()
+				expectedIng = currIng.UpdateClone(testCase.payload).Normalize()
 				updatedIng = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusOK).Normalize()
 			} else {
 				expectedIng = currIng.Normalize()
@@ -1452,44 +1452,4 @@ func TestDeleteIngredient(t *testing.T) {
 			}
 		})
 	}
-}
-
-func updateIngredientResponse(ing dto.IngredientResponse, updates map[string]any) dto.IngredientResponse {
-	amount := decimal.NewFromInt(1)
-	if amountVal, ok := updates[string(dto.IngredientAmount)]; ok {
-		amount, _ = helpers.CreateDecimal(amountVal)
-	}
-
-	for key, value := range updates {
-		ingKey := dto.IngredientKeys(key)
-		switch ingKey {
-		case dto.IngredientName:
-			ing.Name = value.(string)
-		case dto.IngredientFats:
-			decimalVal, _ := helpers.CreateDecimal(value)
-			ing.Fats = decimalVal.Div(amount)
-		case dto.IngredientCarbs:
-			decimalVal, _ := helpers.CreateDecimal(value)
-			ing.Carbohydrates = decimalVal.Div(amount)
-		case dto.IngredientProtein:
-			decimalVal, _ := helpers.CreateDecimal(value)
-			ing.Protein = decimalVal.Div(amount)
-		case dto.IngredientCalories:
-			decimalVal, _ := helpers.CreateDecimal(value)
-			ing.Calories = decimalVal.Div(amount)
-		case dto.IngredientUnitType:
-			switch typeVal := value.(type) {
-			case bool:
-				ing.UnitType = dto.Measurement(typeVal)
-			case dto.Measurement:
-				ing.UnitType = typeVal
-			}
-		case dto.IngredientServings:
-			ing.Servings = value.([]dto.ServingInfo)
-		case dto.IngredientBrand:
-			ing.Brand = value.(string)
-		}
-	}
-
-	return ing
 }

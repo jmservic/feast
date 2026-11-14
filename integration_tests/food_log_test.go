@@ -371,7 +371,7 @@ func TestFoodItemGet(t *testing.T) {
 	}
 }
 
-/*func TestFoodItemUpdate(t *testing.T) {
+func TestFoodItemUpdate(t *testing.T) {
 	helpers.LoadDotEnv()
 
 	member := UserInfo{
@@ -421,7 +421,7 @@ func TestFoodItemGet(t *testing.T) {
 		dto.IngredientServings: []dto.ServingInfo{
 			{
 				Name:     "Servings",
-				Quantity: decimal.NewFromInt(128),
+				Quantity: decimal.NewFromInt(1),
 			},
 		}})
 	memberIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
@@ -477,19 +477,131 @@ func TestFoodItemGet(t *testing.T) {
 	otherMemberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
 
 	testCases := []struct {
-		testName, token string
-		params          map[dto.FoodItemKeys]any
-		statusCode      int
+		testName, token, foodItemUserToken string
+		id                                 uuid.UUID
+		params                             map[string]any
+		statusCode                         int
 	}{
 		{
 			testName: "Successfully update all fields",
-			params:   map[dto.FoodItemKeys]any{},
+			id:       memberFoodItem.Id,
+			params: map[string]any{
+				string(dto.FoodItemDate):           time.Now(),
+				string(dto.FoodItemCategory):       dto.Dinner,
+				string(dto.FoodItemAmount):         2,
+				string(dto.FoodItemServingsName):   "double helping",
+				string(dto.FoodItemServingsAmount): 2,
+			},
+			token:             token,
+			foodItemUserToken: token,
+			statusCode:        http.StatusOK,
+		},
+		{
+			testName: "Successfully update date only",
+			id:       memberFoodItem.Id,
+			params: map[string]any{
+				string(dto.FoodItemDate): time.Date(2016, time.May, 5, 0, 0, 0, 0, time.UTC),
+			},
+			token:             token,
+			foodItemUserToken: token,
+			statusCode:        http.StatusOK,
+		},
+		{
+			testName: "Successfully update category only",
+			id:       memberFoodItem.Id,
+			params: map[string]any{
+				string(dto.FoodItemCategory): dto.Snacks,
+			},
+			token:             token,
+			foodItemUserToken: token,
+			statusCode:        http.StatusOK,
+		},
+		{
+			testName: "Successfully update Amount only",
+			id:       memberFoodItem.Id,
+			params: map[string]any{
+				string(dto.FoodItemAmount): 8,
+			},
+			token:             token,
+			foodItemUserToken: token,
+			statusCode:        http.StatusOK,
+		},
+		{
+			testName: "Successfully update servings name only",
+			id:       memberFoodItem.Id,
+			params: map[string]any{
+				string(dto.FoodItemServingsName): "HachiBan Servings",
+			},
+			token:             token,
+			foodItemUserToken: token,
+			statusCode:        http.StatusOK,
+		},
+		{
+			testName: "Successfully update servings amount only",
+			id:       memberFoodItem.Id,
+			params: map[string]any{
+				string(dto.FoodItemServingsAmount): 8,
+			},
+			token:             token,
+			foodItemUserToken: token,
+			statusCode:        http.StatusOK,
+		},
+
+		{
+			testName:   "Receives not found when trying to update a nonexistent food item",
+			id:         uuid.New(),
+			token:      token,
+			statusCode: http.StatusNotFound,
+		},
+		{
+			testName: "Receives forbidden when trying to update another user's food item",
+			id:       otherMemberFoodItem.Id,
+			params: map[string]any{
+				string(dto.FoodItemDate):           time.Now(),
+				string(dto.FoodItemCategory):       dto.Dinner,
+				string(dto.FoodItemAmount):         2,
+				string(dto.FoodItemServingsName):   "double helping",
+				string(dto.FoodItemServingsAmount): 2,
+			},
+			token:             token,
+			foodItemUserToken: otherMemberLoginResponse.Token,
+			statusCode:        http.StatusForbidden,
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
+			var prevFoodItem dto.FoodItem
 
+			res := client.GetFoodItem(testCase.foodItemUserToken, testCase.id)
+
+			if res.StatusCode == http.StatusOK {
+				prevFoodItem = helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusOK)
+			} else {
+				res.Body.Close()
+			}
+
+			res = client.UpdateFoodItem(testCase.token, testCase.id, testCase.params)
+			if res.StatusCode != testCase.statusCode {
+				t.Fatalf("expected update food item to return %d, received %d", testCase.statusCode, res.StatusCode)
+
+			}
+
+			if res.StatusCode == http.StatusOK {
+				currFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusOK).Normalize()
+				expectedFoodItem := prevFoodItem.UpdateClone(testCase.params).Normalize()
+				assert.Equal(t, expectedFoodItem, currFoodItem)
+
+				t.Log(currFoodItem.Normalize().Amount)
+			} else {
+				res.Body.Close()
+
+				if res.StatusCode != http.StatusNotFound {
+					res := client.GetFoodItem(testCase.foodItemUserToken, testCase.id)
+					currFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusOK)
+					assert.Equal(t, prevFoodItem.Normalize(), currFoodItem.Normalize())
+				}
+			}
 		})
 	}
-}*/
+}
