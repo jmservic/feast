@@ -129,6 +129,55 @@ func (q *Queries) GetFoodItemById(ctx context.Context, id uuid.UUID) (FoodLog, e
 	return i, err
 }
 
+const getUserFoodItemsByRange = `-- name: GetUserFoodItemsByRange :many
+SELECT id, name, date, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, quantity, servings_name, servings_quantity, user_id, created_at
+FROM food_log
+WHERE date BETWEEN $1 and $2 AND user_id = $3
+`
+
+type GetUserFoodItemsByRangeParams struct {
+	StartDate pgtype.Date
+	EndDate   pgtype.Date
+	UserID    uuid.UUID
+}
+
+func (q *Queries) GetUserFoodItemsByRange(ctx context.Context, arg GetUserFoodItemsByRangeParams) ([]FoodLog, error) {
+	rows, err := q.db.Query(ctx, getUserFoodItemsByRange, arg.StartDate, arg.EndDate, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FoodLog
+	for rows.Next() {
+		var i FoodLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Date,
+			&i.Category,
+			&i.Fats,
+			&i.Carbohydrates,
+			&i.Protein,
+			&i.Calories,
+			&i.UnitType,
+			&i.Brand,
+			&i.IngredientsID,
+			&i.Quantity,
+			&i.ServingsName,
+			&i.ServingsQuantity,
+			&i.UserID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateFoodItem = `-- name: UpdateFoodItem :one
 UPDATE food_log
 SET

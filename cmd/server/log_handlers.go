@@ -61,8 +61,63 @@ func (cfg apiConfig) handlerGetFoodItem(w http.ResponseWriter, r *http.Request, 
 	})
 }
 
-func (cfg apiConfig) handlerGetLogs(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	// Need name, date, category, fats, protein, carbs, calories, unit type, brand, ingredient id, quantity,serving name, serving quantity
+func (cfg apiConfig) handlerGetFoodItems(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	start := r.FormValue("start")
+	end := r.FormValue("end")
+
+	startDate := pgtype.Date{}
+	err := startDate.Scan(start)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.ConvertTimeToDbDateErrStr, err)
+		return
+	}
+
+	endDate := startDate
+	if end != "" {
+		err = endDate.Scan(end)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, constants.ConvertTimeToDbDateErrStr, err)
+			return
+		}
+	}
+
+	storedFoodItems, err := cfg.db.GetUserFoodItemsByRange(r.Context(), database.GetUserFoodItemsByRangeParams{
+		StartDate: startDate,
+		EndDate:   endDate,
+		UserID:    userId,
+	})
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetIngredientErrStr, err)
+		return
+	}
+
+	foodItems := make([]dto.FoodItem, 0, len(storedFoodItems))
+	for _, storedFoodItem := range storedFoodItems {
+		var brand string
+		if storedFoodItem.Brand != nil {
+			brand = *storedFoodItem.Brand
+		}
+		temp := dto.FoodItem{
+			Id:             storedFoodItem.ID,
+			Date:           storedFoodItem.Date.Time,
+			Category:       dto.Category(storedFoodItem.Category),
+			Name:           storedFoodItem.Name,
+			Fats:           storedFoodItem.Fats,
+			Carbohydrates:  storedFoodItem.Carbohydrates,
+			Protein:        storedFoodItem.Protein,
+			Calories:       storedFoodItem.Calories,
+			Brand:          brand,
+			UnitType:       dto.Measurement(storedFoodItem.UnitType),
+			Amount:         storedFoodItem.Quantity,
+			ServingsName:   storedFoodItem.ServingsName,
+			ServingsAmount: storedFoodItem.ServingsQuantity,
+			UserId:         storedFoodItem.UserID,
+		}
+		foodItems = append(foodItems, temp)
+	}
+
+	respondWithJSON(w, http.StatusOK, foodItems)
 }
 
 func (cfg apiConfig) handlerCreateFoodItem(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
