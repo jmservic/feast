@@ -90,6 +90,16 @@ func (q *Queries) CreateFoodItem(ctx context.Context, arg CreateFoodItemParams) 
 	return i, err
 }
 
+const deleteFoodItem = `-- name: DeleteFoodItem :exec
+DELETE FROM food_log
+WHERE id = $1
+`
+
+func (q *Queries) DeleteFoodItem(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteFoodItem, id)
+	return err
+}
+
 const getFoodItemById = `-- name: GetFoodItemById :one
 SELECT id, name, date, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, quantity, servings_name, servings_quantity, user_id, created_at FROM food_log
 WHERE id = $1

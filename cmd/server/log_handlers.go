@@ -259,5 +259,30 @@ func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Reques
 }
 
 func (cfg apiConfig) handlerDeleteFoodItem(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
+	foodItemId, err := uuid.Parse(r.PathValue("log_item_id"))
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
+		return
+	}
 
+	storedFoodItem, err := cfg.db.GetFoodItemById(r.Context(), foodItemId)
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetFoodItemErrStr, err)
+		return
+	}
+
+	if storedFoodItem.UserID != userId {
+		respondWithError(w, http.StatusForbidden, constants.NotAuthorizedErrStr, nil)
+		return
+	}
+
+	err = cfg.db.DeleteFoodItem(r.Context(), foodItemId)
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.GetFoodItemErrStr, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
