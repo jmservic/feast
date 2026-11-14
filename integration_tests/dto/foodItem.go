@@ -41,3 +41,13 @@ const (
 	FoodItemServingsAmount FoodItemKeys = "amount_in_servings"
 	FoodItemUserId         FoodItemKeys = "user_id"
 )
+
+func (fI FoodItem) Normalize() FoodItem {
+	fI.Fats = fI.Fats.Normalize()
+	fI.Carbohydrates = fI.Carbohydrates.Normalize()
+	fI.Protein = fI.Protein.Normalize()
+	fI.Calories = fI.Calories.Normalize()
+	fI.Amount = fI.Amount.Normalize()
+	fI.ServingsAmount = fI.ServingsAmount.Normalize()
+	return fI
+}

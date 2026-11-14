@@ -43,7 +43,7 @@ func (cfg apiConfig) handlerGetFoodItem(w http.ResponseWriter, r *http.Request, 
 		brand = *storedFoodItem.Brand
 	}
 
-	respondWithJSON(w, http.StatusCreated, dto.FoodItem{
+	respondWithJSON(w, http.StatusOK, dto.FoodItem{
 		Id:             storedFoodItem.ID,
 		Date:           storedFoodItem.Date.Time,
 		Category:       dto.Category(storedFoodItem.Category),

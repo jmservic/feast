@@ -120,6 +120,7 @@ func main() {
 
 	// Food Log
 	handler.Handle("GET /api/logs", cfg.middlewareAuthentication(cfg.handlerGetLogs))
+	handler.Handle("GET /api/logs/{log_item_id}", cfg.middlewareAuthentication(cfg.handlerGetFoodItem))
 	handler.Handle("POST /api/logs", cfg.middlewareAuthentication(cfg.handlerCreateFoodItem))
 	handler.Handle("PATCH /api/logs/{log_item_id}", cfg.middlewareAuthentication(cfg.handlerUpdateFoodItem))
 	handler.Handle("DELETE /api/logs/{log_item_id}", cfg.middlewareAuthentication(cfg.handlerDeleteFoodItem))

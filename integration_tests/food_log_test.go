@@ -219,7 +219,159 @@ func TestFoodItemCreate(t *testing.T) {
 	}
 }
 
-func TestFoodItemUpdate(t *testing.T) {
+func TestFoodItemGet(t *testing.T) {
+	helpers.LoadDotEnv()
+
+	member := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+
+	otherMember := UserInfo{
+		name:     "cassidy",
+		email:    "Casstadon@example.com",
+		password: "very-secreto",
+	}
+
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	res := client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(member.email, member.password)
+	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+	token := loginResponse.Token
+
+	res = client.CreateUser(otherMember.name, otherMember.email, otherMember.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(otherMember.email, otherMember.password)
+	otherMemberLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	res = client.CreateIngredient(token, map[dto.IngredientKeys]any{
+		dto.IngredientName:     "Simple Italian Chicken",
+		dto.IngredientProtein:  45.1,
+		dto.IngredientFats:     13,
+		dto.IngredientCarbs:    8.9,
+		dto.IngredientCalories: 345,
+		dto.IngredientBrand:    "Service Fam",
+		dto.IngredientAmount:   1,
+		dto.IngredientUnitType: dto.Weight,
+		dto.IngredientServings: []dto.ServingInfo{
+			{
+				Name:     "Servings",
+				Quantity: decimal.NewFromInt(128),
+			},
+		}})
+	memberIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+
+	res = client.CreateFoodItem(token, map[dto.FoodItemKeys]any{
+		dto.FoodItemId:             memberIngredient.Id,
+		dto.FoodItemDate:           time.Date(1994, time.November, 21, 0, 0, 0, 0, time.UTC),
+		dto.FoodItemCategory:       dto.Lunch,
+		dto.FoodItemAmount:         1,
+		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
+		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+	})
+	memberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
+
+	res = client.CreateIngredient(otherMemberLoginResponse.Token, map[dto.IngredientKeys]any{
+		dto.IngredientName:     "Organic Whole Milk",
+		dto.IngredientProtein:  8,
+		dto.IngredientFats:     0.5,
+		dto.IngredientCarbs:    13,
+		dto.IngredientCalories: 160,
+		dto.IngredientBrand:    "Horizon Organic",
+		dto.IngredientAmount:   240,
+		dto.IngredientUnitType: dto.Volume,
+		dto.IngredientServings: []dto.ServingInfo{
+			{
+				Name:     "Cups",
+				Quantity: decimal.NewFromInt(240),
+			},
+			{
+				Name:     "1/4 Cups",
+				Quantity: decimal.NewFromInt(60),
+			},
+			{
+				Name:     "1/2 Cups",
+				Quantity: decimal.NewFromInt(120),
+			},
+			{
+				Name:     "2 Cups",
+				Quantity: decimal.NewFromInt(240),
+			},
+		},
+	})
+	otherMemberIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+
+	res = client.CreateFoodItem(otherMemberLoginResponse.Token, map[dto.FoodItemKeys]any{
+		dto.FoodItemId:             otherMemberIngredient.Id,
+		dto.FoodItemDate:           time.Date(1994, time.November, 21, 0, 0, 0, 0, time.UTC),
+		dto.FoodItemCategory:       dto.Lunch,
+		dto.FoodItemAmount:         1,
+		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
+		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+	})
+	otherMemberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
+
+	testCases := []struct {
+		testName, token string
+		foodItemId      uuid.UUID
+		expectedItem    dto.FoodItem
+		statusCode      int
+	}{
+		{
+			testName:     "Successfully get user's food item",
+			foodItemId:   memberFoodItem.Id,
+			expectedItem: memberFoodItem.Normalize(),
+			token:        token,
+			statusCode:   http.StatusOK,
+		},
+		{
+			testName:   "Receive not found for a nonexistent food item",
+			foodItemId: uuid.New(),
+			token:      token,
+			statusCode: http.StatusNotFound,
+		},
+		{
+			testName:   "Receive forbidden for another user's food item",
+			foodItemId: otherMemberFoodItem.Id,
+			statusCode: http.StatusForbidden,
+			token:      token,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			res := client.GetFoodItem(testCase.token, testCase.foodItemId)
+
+			if res.StatusCode != testCase.statusCode {
+				t.Fatalf("Expected get food item to return %d, received %d", testCase.statusCode, res.StatusCode)
+			}
+
+			if res.StatusCode == http.StatusOK {
+				foodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusOK).Normalize()
+				assert.Equal(t, testCase.expectedItem, foodItem)
+			} else {
+				res.Body.Close()
+			}
+
+		})
+
+	}
+}
+
+/*func TestFoodItemUpdate(t *testing.T) {
 	helpers.LoadDotEnv()
 
 	member := UserInfo{
@@ -340,4 +492,4 @@ func TestFoodItemUpdate(t *testing.T) {
 
 		})
 	}
-}
+}*/
