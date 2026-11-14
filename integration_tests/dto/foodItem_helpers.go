@@ -56,3 +56,18 @@ func (c Client) UpdateFoodItem(token string, id uuid.UUID, updates map[string]an
 
 	return res
 }
+
+func (c Client) DeleteFoodItem(token string, id uuid.UUID) *http.Response {
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf(c.feastUrl+constants.FoodlogsIdPath, id), nil)
+	if err != nil {
+		c.t.Fatalf("Error occurred when creating the get request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}

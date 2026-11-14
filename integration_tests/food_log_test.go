@@ -548,10 +548,11 @@ func TestFoodItemUpdate(t *testing.T) {
 		},
 
 		{
-			testName:   "Receives not found when trying to update a nonexistent food item",
-			id:         uuid.New(),
-			token:      token,
-			statusCode: http.StatusNotFound,
+			testName:          "Receives not found when trying to update a nonexistent food item",
+			id:                uuid.New(),
+			token:             token,
+			foodItemUserToken: token,
+			statusCode:        http.StatusNotFound,
 		},
 		{
 			testName: "Receives forbidden when trying to update another user's food item",
@@ -604,4 +605,175 @@ func TestFoodItemUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFoodItemDelete(t *testing.T) {
+	helpers.LoadDotEnv()
+
+	member := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+
+	otherMember := UserInfo{
+		name:     "cassidy",
+		email:    "Casstadon@example.com",
+		password: "very-secreto",
+	}
+
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	res := client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(member.email, member.password)
+	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+	token := loginResponse.Token
+
+	res = client.CreateUser(otherMember.name, otherMember.email, otherMember.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(otherMember.email, otherMember.password)
+	otherMemberLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	res = client.CreateIngredient(token, map[dto.IngredientKeys]any{
+		dto.IngredientName:     "Simple Italian Chicken",
+		dto.IngredientProtein:  45.1,
+		dto.IngredientFats:     13,
+		dto.IngredientCarbs:    8.9,
+		dto.IngredientCalories: 345,
+		dto.IngredientBrand:    "Service Fam",
+		dto.IngredientAmount:   1,
+		dto.IngredientUnitType: dto.Weight,
+		dto.IngredientServings: []dto.ServingInfo{
+			{
+				Name:     "Servings",
+				Quantity: decimal.NewFromInt(1),
+			},
+		}})
+	memberIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+
+	res = client.CreateIngredient(otherMemberLoginResponse.Token, map[dto.IngredientKeys]any{
+		dto.IngredientName:     "Organic Whole Milk",
+		dto.IngredientProtein:  8,
+		dto.IngredientFats:     0.5,
+		dto.IngredientCarbs:    13,
+		dto.IngredientCalories: 160,
+		dto.IngredientBrand:    "Horizon Organic",
+		dto.IngredientAmount:   240,
+		dto.IngredientUnitType: dto.Volume,
+		dto.IngredientServings: []dto.ServingInfo{
+			{
+				Name:     "Cups",
+				Quantity: decimal.NewFromInt(240),
+			},
+			{
+				Name:     "1/4 Cups",
+				Quantity: decimal.NewFromInt(60),
+			},
+			{
+				Name:     "1/2 Cups",
+				Quantity: decimal.NewFromInt(120),
+			},
+			{
+				Name:     "2 Cups",
+				Quantity: decimal.NewFromInt(240),
+			},
+		},
+	})
+	otherMemberIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+
+	res = client.CreateFoodItem(token, map[dto.FoodItemKeys]any{
+		dto.FoodItemId:             memberIngredient.Id,
+		dto.FoodItemDate:           time.Date(1994, time.November, 21, 0, 0, 0, 0, time.UTC),
+		dto.FoodItemCategory:       dto.Lunch,
+		dto.FoodItemAmount:         1,
+		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
+		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+	})
+	memberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
+
+	res = client.CreateFoodItem(otherMemberLoginResponse.Token, map[dto.FoodItemKeys]any{
+		dto.FoodItemId:             otherMemberIngredient.Id,
+		dto.FoodItemDate:           time.Date(1994, time.November, 21, 0, 0, 0, 0, time.UTC),
+		dto.FoodItemCategory:       dto.Lunch,
+		dto.FoodItemAmount:         1,
+		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
+		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+	})
+	otherMemberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
+
+	testCases := []struct {
+		testName, token, foodItemUserToken string
+		id                                 uuid.UUID
+		statusCode                         int
+	}{
+		{
+			testName:          "Successfully delete an user's food item",
+			id:                memberFoodItem.Id,
+			token:             token,
+			foodItemUserToken: token,
+			statusCode:        http.StatusNoContent,
+		},
+		{
+			testName:          "Receive not found when deleting a nonexistent food item",
+			id:                uuid.New(),
+			token:             token,
+			foodItemUserToken: token,
+			statusCode:        http.StatusNotFound,
+		},
+		{
+			testName:          "Receive forbidden when deleting another user's food item",
+			id:                otherMemberFoodItem.Id,
+			token:             token,
+			foodItemUserToken: otherMemberLoginResponse.Token,
+			statusCode:        http.StatusForbidden,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			var prevFoodItem dto.FoodItem
+
+			res := client.GetFoodItem(testCase.foodItemUserToken, testCase.id)
+
+			if res.StatusCode == http.StatusOK {
+				prevFoodItem = helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusOK).Normalize()
+			} else {
+				res.Body.Close()
+			}
+
+			res = client.DeleteFoodItem(testCase.token, testCase.id)
+			res.Body.Close()
+
+			if res.StatusCode != testCase.statusCode {
+				t.Fatalf("expected delete food item to return %d, received %d", testCase.statusCode, res.StatusCode)
+			}
+
+			res = client.GetFoodItem(testCase.foodItemUserToken, testCase.id)
+
+			if testCase.statusCode == http.StatusNoContent {
+				res.Body.Close()
+				if res.StatusCode != http.StatusNotFound {
+					t.Fatalf("expected not to find the ingredient, received %d", res.StatusCode)
+				}
+			} else if testCase.statusCode == http.StatusForbidden {
+				currFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusOK).Normalize()
+				assert.Equal(t, prevFoodItem, currFoodItem)
+			} else {
+				res.Body.Close()
+			}
+
+		})
+	}
+
 }
