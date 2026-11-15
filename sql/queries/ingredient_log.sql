@@ -25,7 +25,8 @@ WHERE id = $1;
 -- name: GetUserFoodItemsByRange :many
 SELECT *
 FROM food_log
-WHERE date BETWEEN @start_date and @end_date AND user_id = @user_id;
+WHERE date BETWEEN @start_date and @end_date AND user_id = @user_id
+ORDER BY date ASC;
 
 -- name: UpdateFoodItem :one
 UPDATE food_log

@@ -133,6 +133,7 @@ const getUserFoodItemsByRange = `-- name: GetUserFoodItemsByRange :many
 SELECT id, name, date, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, quantity, servings_name, servings_quantity, user_id, created_at
 FROM food_log
 WHERE date BETWEEN $1 and $2 AND user_id = $3
+ORDER BY date ASC
 `
 
 type GetUserFoodItemsByRangeParams struct {

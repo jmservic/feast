@@ -707,8 +707,8 @@ func TestFoodItemDelete(t *testing.T) {
 		dto.FoodItemDate:           time.Date(1994, time.November, 21, 0, 0, 0, 0, time.UTC),
 		dto.FoodItemCategory:       dto.Lunch,
 		dto.FoodItemAmount:         1,
-		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
-		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+		dto.FoodItemServingsName:   otherMemberIngredient.Servings[0].Name,
+		dto.FoodItemServingsAmount: otherMemberIngredient.Servings[0].Quantity,
 	})
 	otherMemberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
 
@@ -761,18 +761,401 @@ func TestFoodItemDelete(t *testing.T) {
 
 			res = client.GetFoodItem(testCase.foodItemUserToken, testCase.id)
 
-			if testCase.statusCode == http.StatusNoContent {
+			switch testCase.statusCode {
+			case http.StatusNoContent:
 				res.Body.Close()
 				if res.StatusCode != http.StatusNotFound {
 					t.Fatalf("expected not to find the ingredient, received %d", res.StatusCode)
 				}
-			} else if testCase.statusCode == http.StatusForbidden {
+			case http.StatusForbidden:
 				currFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusOK).Normalize()
 				assert.Equal(t, prevFoodItem, currFoodItem)
+			default:
+				res.Body.Close()
+			}
+		})
+	}
+}
+
+func TestGetFoodItems(t *testing.T) {
+	helpers.LoadDotEnv()
+
+	member := UserInfo{
+		name:     "jonathan",
+		email:    "Jon@example.com",
+		password: "very-secret",
+	}
+
+	otherMember := UserInfo{
+		name:     "cassidy",
+		email:    "Casstadon@example.com",
+		password: "very-secreto",
+	}
+
+	memberFoodItems := make(dto.FoodItems, 0)
+	foodInfos := map[string]map[dto.IngredientKeys]any{
+		"Enriched Long Grain White Rice": {
+			dto.IngredientName:     "Enriched Long Grain White Rice",
+			dto.IngredientCarbs:    decimal.NewFromInt(36),
+			dto.IngredientProtein:  decimal.NewFromInt(3),
+			dto.IngredientCalories: decimal.NewFromInt(160),
+			dto.IngredientBrand:    "Food Lion",
+			dto.IngredientAmount:   45,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Black Beans": {
+			dto.IngredientName:     "Black Beans",
+			dto.IngredientFats:     0.5,
+			dto.IngredientCarbs:    36,
+			dto.IngredientProtein:  8,
+			dto.IngredientCalories: 130,
+			dto.IngredientBrand:    "Goya",
+			dto.IngredientAmount:   122,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Green Beans": {
+			dto.IngredientName:     "Green Beans",
+			dto.IngredientCarbs:    6,
+			dto.IngredientProtein:  2,
+			dto.IngredientCalories: 25,
+			dto.IngredientBrand:    "Pero Family Farms",
+			dto.IngredientAmount:   85,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Organic Whole Milk": {
+			dto.IngredientName:     "Organic Whole Milk",
+			dto.IngredientFats:     8,
+			dto.IngredientCarbs:    13,
+			dto.IngredientProtein:  8,
+			dto.IngredientCalories: 160,
+			dto.IngredientBrand:    "Horizon Organic",
+			dto.IngredientAmount:   240,
+			dto.IngredientUnitType: dto.Volume,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "mL",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Simple Italian Chicken": {
+			dto.IngredientName:     "Simple Italian Chicken",
+			dto.IngredientFats:     14.4,
+			dto.IngredientCarbs:    8.9,
+			dto.IngredientProtein:  45.1,
+			dto.IngredientCalories: 345,
+			dto.IngredientAmount:   1,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "dto.IngredientServings",
+					Quantity: decimal.Zero,
+				},
+			},
+		},
+		"Simple Spinach Scramble": {
+			dto.IngredientName:     "Simple Spinach Scramble",
+			dto.IngredientFats:     10.3,
+			dto.IngredientCarbs:    5.2,
+			dto.IngredientProtein:  35.9,
+			dto.IngredientCalories: 277,
+			dto.IngredientAmount:   1,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "dto.IngredientServings",
+					Quantity: decimal.Zero,
+				},
+			},
+		},
+		"Whole Milk Greek Yogurt": {
+			dto.IngredientName:     "Whole Milk Greek Yogurt",
+			dto.IngredientFats:     8,
+			dto.IngredientCarbs:    8,
+			dto.IngredientProtein:  16,
+			dto.IngredientCalories: 160,
+			dto.IngredientBrand:    "Food Lion",
+			dto.IngredientAmount:   170,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Egg Whites": {
+			dto.IngredientName:     "Egg Whites",
+			dto.IngredientProtein:  5,
+			dto.IngredientCalories: 25,
+			dto.IngredientBrand:    "Food lion",
+			dto.IngredientAmount:   46,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Sour Cream Grade A": {
+			dto.IngredientName:     "Sour Cream Grade A",
+			dto.IngredientFats:     5,
+			dto.IngredientCarbs:    1,
+			dto.IngredientProtein:  0.5,
+			dto.IngredientCalories: 60,
+			dto.IngredientBrand:    "food Lion",
+			dto.IngredientAmount:   30,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+		"Chicken Breast": {
+			dto.IngredientName:     "Chicken Breast",
+			dto.IngredientFats:     2,
+			dto.IngredientCarbs:    0,
+			dto.IngredientProtein:  23,
+			dto.IngredientCalories: 110,
+			dto.IngredientAmount:   113.398093,
+			dto.IngredientUnitType: dto.Weight,
+			dto.IngredientServings: []dto.ServingInfo{
+				{
+					Name:     "grams",
+					Quantity: decimal.NewFromInt(1),
+				},
+			},
+		},
+	}
+
+	memberIngredients := make(map[string]dto.IngredientResponse, len(foodInfos))
+
+	feastUrl := helpers.GetFeastURL()
+	t.Cleanup(func() { helpers.ResetDatabase(feastUrl) })
+	client := dto.NewClient(t, feastUrl)
+
+	res := client.CreateUser(member.name, member.email, member.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(member.email, member.password)
+	loginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+	token := loginResponse.Token
+
+	res = client.CreateUser(otherMember.name, otherMember.email, otherMember.password)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected status created, got: %d", res.StatusCode)
+	}
+	res.Body.Close()
+
+	res = client.LoginUser(otherMember.email, otherMember.password)
+	otherMemberLoginResponse := helpers.GetResponseObject[dto.UserLoginResponse](t, res, http.StatusOK)
+
+	for name, foodInfo := range foodInfos {
+		res := client.CreateIngredient(token, foodInfo)
+		memberIngredients[name] = helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+	}
+
+	res = client.CreateIngredient(otherMemberLoginResponse.Token, map[dto.IngredientKeys]any{
+		dto.IngredientName:     "Organic Whole Milk",
+		dto.IngredientProtein:  8,
+		dto.IngredientFats:     0.5,
+		dto.IngredientCarbs:    13,
+		dto.IngredientCalories: 160,
+		dto.IngredientBrand:    "Horizon Organic",
+		dto.IngredientAmount:   240,
+		dto.IngredientUnitType: dto.Volume,
+		dto.IngredientServings: []dto.ServingInfo{
+			{
+				Name:     "Cups",
+				Quantity: decimal.NewFromInt(240),
+			},
+			{
+				Name:     "1/4 Cups",
+				Quantity: decimal.NewFromInt(60),
+			},
+			{
+				Name:     "1/2 Cups",
+				Quantity: decimal.NewFromInt(120),
+			},
+			{
+				Name:     "2 Cups",
+				Quantity: decimal.NewFromInt(240),
+			},
+		},
+	})
+	otherMemberIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
+	res = client.CreateFoodItem(otherMemberLoginResponse.Token, map[dto.FoodItemKeys]any{
+		dto.FoodItemId:             otherMemberIngredient.Id,
+		dto.FoodItemDate:           time.Date(2026, time.November, 16, 0, 0, 0, 0, time.UTC),
+		dto.FoodItemCategory:       dto.Lunch,
+		dto.FoodItemAmount:         1,
+		dto.FoodItemServingsName:   otherMemberIngredient.Servings[0].Name,
+		dto.FoodItemServingsAmount: otherMemberIngredient.Servings[0].Quantity,
+	})
+	res.Body.Close()
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected the create food item to return status created, received %d", res.StatusCode)
+	}
+
+	foodItemParams := []map[dto.FoodItemKeys]any{
+		{
+			dto.FoodItemId:             memberIngredients["Organic Whole Milk"].Id,
+			dto.FoodItemDate:           time.Date(2026, time.November, 16, 0, 0, 0, 0, time.UTC),
+			dto.FoodItemCategory:       dto.Breakfast,
+			dto.FoodItemAmount:         240,
+			dto.FoodItemServingsName:   memberIngredients["Organic Whole Milk"].Servings[0].Name,
+			dto.FoodItemServingsAmount: memberIngredients["Organic Whole Milk"].Servings[0].Quantity,
+		},
+		{
+			dto.FoodItemId:             memberIngredients["Simple Italian Chicken"].Id,
+			dto.FoodItemDate:           time.Date(2026, time.November, 16, 0, 0, 0, 0, time.UTC),
+			dto.FoodItemCategory:       dto.Lunch,
+			dto.FoodItemAmount:         1,
+			dto.FoodItemServingsName:   memberIngredients["Simple Italian Chicken"].Servings[0].Name,
+			dto.FoodItemServingsAmount: memberIngredients["Simple Italian Chicken"].Servings[0].Quantity,
+		},
+		{
+			dto.FoodItemId:             memberIngredients["Whole Milk Greek Yogurt"].Id,
+			dto.FoodItemDate:           time.Date(2026, time.November, 16, 0, 0, 0, 0, time.UTC),
+			dto.FoodItemCategory:       dto.Dinner,
+			dto.FoodItemAmount:         170,
+			dto.FoodItemServingsName:   memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Name,
+			dto.FoodItemServingsAmount: memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Quantity,
+		},
+		{
+			dto.FoodItemId:             memberIngredients["Simple Spinach Scramble"].Id,
+			dto.FoodItemDate:           time.Date(2026, time.November, 17, 0, 0, 0, 0, time.UTC),
+			dto.FoodItemCategory:       dto.Breakfast,
+			dto.FoodItemAmount:         1,
+			dto.FoodItemServingsName:   memberIngredients["Simple Spinach Scramble"].Servings[0].Name,
+			dto.FoodItemServingsAmount: memberIngredients["Simple Spinach Scramble"].Servings[0].Quantity,
+		},
+		{
+			dto.FoodItemId:             memberIngredients["Simple Italian Chicken"].Id,
+			dto.FoodItemDate:           time.Date(2026, time.November, 17, 0, 0, 0, 0, time.UTC),
+			dto.FoodItemCategory:       dto.Lunch,
+			dto.FoodItemAmount:         1,
+			dto.FoodItemServingsName:   memberIngredients["Simple Italian Chicken"].Servings[0].Name,
+			dto.FoodItemServingsAmount: memberIngredients["Simple Italian Chicken"].Servings[0].Quantity,
+		},
+		{
+			dto.FoodItemId:             memberIngredients["Whole Milk Greek Yogurt"].Id,
+			dto.FoodItemDate:           time.Date(2026, time.November, 17, 0, 0, 0, 0, time.UTC),
+			dto.FoodItemCategory:       dto.Snacks,
+			dto.FoodItemAmount:         170,
+			dto.FoodItemServingsName:   memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Name,
+			dto.FoodItemServingsAmount: memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Quantity,
+		},
+		{
+			dto.FoodItemId:             memberIngredients["Organic Whole Milk"].Id,
+			dto.FoodItemDate:           time.Date(2026, time.November, 18, 0, 0, 0, 0, time.UTC),
+			dto.FoodItemCategory:       dto.Breakfast,
+			dto.FoodItemAmount:         240,
+			dto.FoodItemServingsName:   memberIngredients["Organic Whole Milk"].Servings[0].Name,
+			dto.FoodItemServingsAmount: memberIngredients["Organic Whole Milk"].Servings[0].Quantity,
+		},
+		{
+			dto.FoodItemId:             memberIngredients["Enriched Long Grain White Rice"].Id,
+			dto.FoodItemDate:           time.Date(2026, time.November, 18, 0, 0, 0, 0, time.UTC),
+			dto.FoodItemCategory:       dto.Lunch,
+			dto.FoodItemAmount:         45,
+			dto.FoodItemServingsName:   memberIngredients["Enriched Long Grain White Rice"].Servings[0].Name,
+			dto.FoodItemServingsAmount: memberIngredients["Enriched Long Grain White Rice"].Servings[0].Quantity,
+		},
+		{
+			dto.FoodItemId:             memberIngredients["Chicken Breast"].Id,
+			dto.FoodItemDate:           time.Date(2026, time.November, 18, 0, 0, 0, 0, time.UTC),
+			dto.FoodItemCategory:       dto.Dinner,
+			dto.FoodItemAmount:         300,
+			dto.FoodItemServingsName:   memberIngredients["Chicken Breast"].Servings[0].Name,
+			dto.FoodItemServingsAmount: memberIngredients["Chicken Breast"].Servings[0].Quantity,
+		},
+	}
+
+	for _, params := range foodItemParams {
+		res := client.CreateFoodItem(token, params)
+		memberFoodItems = append(memberFoodItems, helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated))
+	}
+
+	testCases := []struct {
+		testName           string
+		startDate, endDate time.Time
+		statusCode         int
+	}{
+		{
+			testName:   "Get food log for one day",
+			startDate:  time.Date(2026, time.November, 16, 1, 1, 1, 1, time.UTC),
+			endDate:    time.Date(2026, time.November, 16, 0, 0, 0, 0, time.UTC),
+			statusCode: http.StatusOK,
+		},
+		{
+			testName:   "Get food log for one day while omitting the endDate",
+			startDate:  time.Date(2026, time.November, 17, 0, 0, 0, 0, time.UTC),
+			statusCode: http.StatusOK,
+		},
+		{
+			testName:   "Get food long for multiple days",
+			startDate:  time.Date(2026, time.November, 16, 0, 0, 0, 0, time.UTC),
+			endDate:    time.Date(2026, time.November, 18, 0, 0, 0, 0, time.UTC),
+			statusCode: http.StatusOK,
+		},
+		{
+			testName:   "receive bad request when endDate is before the startDate",
+			startDate:  time.Date(2026, time.November, 18, 0, 0, 0, 0, time.UTC),
+			endDate:    time.Date(2026, time.November, 16, 0, 0, 0, 0, time.UTC),
+			statusCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.testName, func(t *testing.T) {
+			startDate := &testCase.startDate
+			var endDate *time.Time
+			zeroTime := time.Time{}
+			if testCase.endDate != zeroTime {
+				endDate = &testCase.endDate
+			} else {
+				endDate = startDate
+			}
+
+			res := client.GetFoodItems(token, startDate, endDate)
+			if res.StatusCode != testCase.statusCode {
+				t.Fatalf("expected get food items to return %d, received %d", testCase.statusCode, res.StatusCode)
+			}
+			if res.StatusCode == http.StatusOK {
+				actualFoodItems := helpers.GetResponseObject[[]dto.FoodItem](t, res, http.StatusOK)
+				for index, foodItem := range actualFoodItems {
+					actualFoodItems[index] = foodItem.Normalize()
+				}
+				expectedFoodItems := memberFoodItems.GetItemsByRange(*startDate, *endDate)
+				assert.EqualValues(t, expectedFoodItems, actualFoodItems)
 			} else {
 				res.Body.Close()
 			}
-
 		})
 	}
 

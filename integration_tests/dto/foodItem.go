@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmservic/feast/integration_tests/helpers"
 	"github.com/shopspring/decimal"
+	"slices"
 	"time"
 )
 
@@ -88,4 +89,22 @@ func (fI FoodItem) UpdateClone(updates map[string]any) FoodItem {
 	}
 
 	return fI
+}
+
+type FoodItems []FoodItem
+
+func (foodItems FoodItems) GetItemsByRange(startTime, endTime time.Time) []FoodItem {
+	startDate := time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(endTime.Year(), endTime.Month(), endTime.Day(), 0, 0, 0, 0, time.UTC)
+	var rtnFoodItems []FoodItem
+
+	for _, foodItem := range foodItems {
+		if foodItem.Date.Compare(startDate) != -1 && foodItem.Date.Compare(endDate) != 1 {
+			rtnFoodItems = append(rtnFoodItems, foodItem.Normalize())
+		}
+	}
+	slices.SortFunc(rtnFoodItems, func(a, b FoodItem) int {
+		return a.Date.Compare(b.Date)
+	})
+	return rtnFoodItems
 }

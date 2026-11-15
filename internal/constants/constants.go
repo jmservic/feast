@@ -8,6 +8,7 @@ const (
 	BeginTransactionErrStr                       string = "error creating a database transaction"
 	ConvertTimeToDbDateErrStr                    string = "error converting struct time to pgType.Date"
 	CommitTransactionErrStr                      string = "error commiting the database transaction"
+	DateRangeErrStr                              string = "error start date cannot be later then the end date"
 	EmptyPasswordErrStr                          string = "password field cannot be empty"
 	EmptyParameterErrStr                         string = "a required parameter is empty"
 	GetIngredientErrStr                          string = "error getting ingredient by id"

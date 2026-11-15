@@ -81,6 +81,11 @@ func (cfg apiConfig) handlerGetFoodItems(w http.ResponseWriter, r *http.Request,
 		}
 	}
 
+	if startDate.Time.Compare(endDate.Time) == 1 {
+		respondWithError(w, http.StatusBadRequest, constants.DateRangeErrStr, nil)
+		return
+	}
+
 	storedFoodItems, err := cfg.db.GetUserFoodItemsByRange(r.Context(), database.GetUserFoodItemsByRangeParams{
 		StartDate: startDate,
 		EndDate:   endDate,
