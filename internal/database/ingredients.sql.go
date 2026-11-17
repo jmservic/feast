@@ -218,16 +218,16 @@ func (q *Queries) GetIngredientsByQuery(ctx context.Context, arg GetIngredientsB
 const getIngredientsServingsById = `-- name: GetIngredientsServingsById :many
 SELECT 
 	name,
-	quantity,
+	amount,
 	id
 FROM ingredient_servings
 WHERE ingredient_id = $1
 `
 
 type GetIngredientsServingsByIdRow struct {
-	Name     string
-	Quantity decimal.Decimal
-	ID       int16
+	Name   string
+	Amount decimal.Decimal
+	ID     int16
 }
 
 func (q *Queries) GetIngredientsServingsById(ctx context.Context, ingredientID uuid.UUID) ([]GetIngredientsServingsByIdRow, error) {
@@ -239,7 +239,7 @@ func (q *Queries) GetIngredientsServingsById(ctx context.Context, ingredientID u
 	var items []GetIngredientsServingsByIdRow
 	for rows.Next() {
 		var i GetIngredientsServingsByIdRow
-		if err := rows.Scan(&i.Name, &i.Quantity, &i.ID); err != nil {
+		if err := rows.Scan(&i.Name, &i.Amount, &i.ID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -253,7 +253,7 @@ func (q *Queries) GetIngredientsServingsById(ctx context.Context, ingredientID u
 const getIngredientsServingsByIds = `-- name: GetIngredientsServingsByIds :many
 SELECT 
 	name,
-	quantity,
+	amount,
 	id,
 	ingredient_id
 FROM ingredient_servings
@@ -262,7 +262,7 @@ WHERE ingredient_id = ANY($1::uuid[])
 
 type GetIngredientsServingsByIdsRow struct {
 	Name         string
-	Quantity     decimal.Decimal
+	Amount       decimal.Decimal
 	ID           int16
 	IngredientID uuid.UUID
 }
@@ -278,7 +278,7 @@ func (q *Queries) GetIngredientsServingsByIds(ctx context.Context, ingredientIds
 		var i GetIngredientsServingsByIdsRow
 		if err := rows.Scan(
 			&i.Name,
-			&i.Quantity,
+			&i.Amount,
 			&i.ID,
 			&i.IngredientID,
 		); err != nil {

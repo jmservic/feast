@@ -5,7 +5,7 @@ import (
 )
 
 type ServingInfo struct {
-	Id       int16           `json:"id"`
-	Name     string          `json:"name"`
-	Quantity decimal.Decimal `json:"quantity"`
+	Id     int16           `json:"id"`
+	Name   string          `json:"name"`
+	Amount decimal.Decimal `json:"amount"`
 }

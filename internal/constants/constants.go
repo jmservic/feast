@@ -42,8 +42,8 @@ const (
 	InvalidProteinErrStr                         string = "protein value cannot be negative"
 	InvalidAmountErrStr                          string = "amount value must be greater than zero"
 	InvalidCredentialsErrStr                     string = "invalid credentials" // #nosec G101
-	InvalidMultipleServingsErrStr                string = "serving quantity must be greater than zero for multiple servings"
-	InvalidServingsErrStr                        string = "serving quantity cannot be negative"
+	InvalidMultipleServingsErrStr                string = "serving amount must be greater than zero for multiple servings"
+	InvalidServingsErrStr                        string = "serving amount cannot be negative"
 	InvalidUUIDErrStr                            string = "error parsing uuid string"
 	InviteAcceptErrStr                           string = "error accepting household invitation"
 	InviteDeclineErrStr                          string = "error declining household invitation"

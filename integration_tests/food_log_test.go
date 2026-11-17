@@ -47,8 +47,8 @@ func TestFoodItemCreate(t *testing.T) {
 		dto.IngredientUnitType: dto.Weight,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "Servings",
-				Quantity: decimal.NewFromInt(128),
+				Name:   "Servings",
+				Amount: decimal.NewFromInt(128),
 			},
 		}})
 	ingredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
@@ -66,7 +66,7 @@ func TestFoodItemCreate(t *testing.T) {
 				dto.FoodItemCategory:       dto.Lunch,
 				dto.FoodItemAmount:         2,
 				dto.FoodItemServingsName:   ingredient.Servings[0].Name,
-				dto.FoodItemServingsAmount: ingredient.Servings[0].Quantity,
+				dto.FoodItemServingsAmount: ingredient.Servings[0].Amount,
 			},
 			statusCode: http.StatusCreated,
 		},
@@ -78,7 +78,7 @@ func TestFoodItemCreate(t *testing.T) {
 				dto.FoodItemCategory:       dto.Lunch,
 				dto.FoodItemAmount:         0,
 				dto.FoodItemServingsName:   ingredient.Servings[0].Name,
-				dto.FoodItemServingsAmount: ingredient.Servings[0].Quantity,
+				dto.FoodItemServingsAmount: ingredient.Servings[0].Amount,
 			},
 			statusCode: http.StatusBadRequest,
 		},
@@ -89,7 +89,7 @@ func TestFoodItemCreate(t *testing.T) {
 				dto.FoodItemDate:           time.Date(1994, time.November, 21, 0, 0, 0, 0, time.UTC),
 				dto.FoodItemCategory:       dto.Lunch,
 				dto.FoodItemServingsName:   ingredient.Servings[0].Name,
-				dto.FoodItemServingsAmount: ingredient.Servings[0].Quantity,
+				dto.FoodItemServingsAmount: ingredient.Servings[0].Amount,
 			},
 			statusCode: http.StatusBadRequest,
 		},
@@ -101,7 +101,7 @@ func TestFoodItemCreate(t *testing.T) {
 				dto.FoodItemCategory:       dto.Lunch,
 				dto.FoodItemAmount:         -1,
 				dto.FoodItemServingsName:   ingredient.Servings[0].Name,
-				dto.FoodItemServingsAmount: ingredient.Servings[0].Quantity,
+				dto.FoodItemServingsAmount: ingredient.Servings[0].Amount,
 			},
 			statusCode: http.StatusBadRequest,
 		},
@@ -125,7 +125,7 @@ func TestFoodItemCreate(t *testing.T) {
 				dto.FoodItemCategory:       dto.Lunch,
 				dto.FoodItemAmount:         1,
 				dto.FoodItemServingsName:   "",
-				dto.FoodItemServingsAmount: ingredient.Servings[0].Quantity,
+				dto.FoodItemServingsAmount: ingredient.Servings[0].Amount,
 			},
 			statusCode: http.StatusBadRequest,
 		},
@@ -136,7 +136,7 @@ func TestFoodItemCreate(t *testing.T) {
 				dto.FoodItemDate:           time.Date(1994, time.November, 21, 0, 0, 0, 0, time.UTC),
 				dto.FoodItemCategory:       dto.Lunch,
 				dto.FoodItemAmount:         1,
-				dto.FoodItemServingsAmount: ingredient.Servings[0].Quantity,
+				dto.FoodItemServingsAmount: ingredient.Servings[0].Amount,
 			},
 			statusCode: http.StatusBadRequest,
 		},
@@ -148,7 +148,7 @@ func TestFoodItemCreate(t *testing.T) {
 				dto.FoodItemCategory:       dto.Lunch,
 				dto.FoodItemAmount:         1,
 				dto.FoodItemServingsName:   ingredient.Servings[0].Name,
-				dto.FoodItemServingsAmount: ingredient.Servings[0].Quantity,
+				dto.FoodItemServingsAmount: ingredient.Servings[0].Amount,
 			},
 			statusCode: http.StatusInternalServerError,
 		},
@@ -160,7 +160,7 @@ func TestFoodItemCreate(t *testing.T) {
 				dto.FoodItemCategory:       dto.Lunch,
 				dto.FoodItemAmount:         1,
 				dto.FoodItemServingsName:   ingredient.Servings[0].Name,
-				dto.FoodItemServingsAmount: ingredient.Servings[0].Quantity,
+				dto.FoodItemServingsAmount: ingredient.Servings[0].Amount,
 			},
 			statusCode: http.StatusNotFound,
 		},
@@ -171,7 +171,7 @@ func TestFoodItemCreate(t *testing.T) {
 				dto.FoodItemCategory:       dto.Lunch,
 				dto.FoodItemAmount:         1,
 				dto.FoodItemServingsName:   ingredient.Servings[0].Name,
-				dto.FoodItemServingsAmount: ingredient.Servings[0].Quantity,
+				dto.FoodItemServingsAmount: ingredient.Servings[0].Amount,
 			},
 			statusCode: http.StatusNotFound,
 		},
@@ -268,8 +268,8 @@ func TestFoodItemGet(t *testing.T) {
 		dto.IngredientUnitType: dto.Weight,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "Servings",
-				Quantity: decimal.NewFromInt(128),
+				Name:   "Servings",
+				Amount: decimal.NewFromInt(128),
 			},
 		}})
 	memberIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
@@ -280,7 +280,7 @@ func TestFoodItemGet(t *testing.T) {
 		dto.FoodItemCategory:       dto.Lunch,
 		dto.FoodItemAmount:         1,
 		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
-		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Amount,
 	})
 	memberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
 
@@ -295,20 +295,20 @@ func TestFoodItemGet(t *testing.T) {
 		dto.IngredientUnitType: dto.Volume,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "Cups",
-				Quantity: decimal.NewFromInt(240),
+				Name:   "Cups",
+				Amount: decimal.NewFromInt(240),
 			},
 			{
-				Name:     "1/4 Cups",
-				Quantity: decimal.NewFromInt(60),
+				Name:   "1/4 Cups",
+				Amount: decimal.NewFromInt(60),
 			},
 			{
-				Name:     "1/2 Cups",
-				Quantity: decimal.NewFromInt(120),
+				Name:   "1/2 Cups",
+				Amount: decimal.NewFromInt(120),
 			},
 			{
-				Name:     "2 Cups",
-				Quantity: decimal.NewFromInt(240),
+				Name:   "2 Cups",
+				Amount: decimal.NewFromInt(240),
 			},
 		},
 	})
@@ -320,7 +320,7 @@ func TestFoodItemGet(t *testing.T) {
 		dto.FoodItemCategory:       dto.Lunch,
 		dto.FoodItemAmount:         1,
 		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
-		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Amount,
 	})
 	otherMemberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
 
@@ -420,8 +420,8 @@ func TestFoodItemUpdate(t *testing.T) {
 		dto.IngredientUnitType: dto.Weight,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "Servings",
-				Quantity: decimal.NewFromInt(1),
+				Name:   "Servings",
+				Amount: decimal.NewFromInt(1),
 			},
 		}})
 	memberIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
@@ -437,20 +437,20 @@ func TestFoodItemUpdate(t *testing.T) {
 		dto.IngredientUnitType: dto.Volume,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "Cups",
-				Quantity: decimal.NewFromInt(240),
+				Name:   "Cups",
+				Amount: decimal.NewFromInt(240),
 			},
 			{
-				Name:     "1/4 Cups",
-				Quantity: decimal.NewFromInt(60),
+				Name:   "1/4 Cups",
+				Amount: decimal.NewFromInt(60),
 			},
 			{
-				Name:     "1/2 Cups",
-				Quantity: decimal.NewFromInt(120),
+				Name:   "1/2 Cups",
+				Amount: decimal.NewFromInt(120),
 			},
 			{
-				Name:     "2 Cups",
-				Quantity: decimal.NewFromInt(240),
+				Name:   "2 Cups",
+				Amount: decimal.NewFromInt(240),
 			},
 		},
 	})
@@ -462,7 +462,7 @@ func TestFoodItemUpdate(t *testing.T) {
 		dto.FoodItemCategory:       dto.Lunch,
 		dto.FoodItemAmount:         1,
 		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
-		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Amount,
 	})
 	memberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
 
@@ -472,7 +472,7 @@ func TestFoodItemUpdate(t *testing.T) {
 		dto.FoodItemCategory:       dto.Lunch,
 		dto.FoodItemAmount:         1,
 		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
-		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Amount,
 	})
 	otherMemberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
 
@@ -656,8 +656,8 @@ func TestFoodItemDelete(t *testing.T) {
 		dto.IngredientUnitType: dto.Weight,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "Servings",
-				Quantity: decimal.NewFromInt(1),
+				Name:   "Servings",
+				Amount: decimal.NewFromInt(1),
 			},
 		}})
 	memberIngredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
@@ -673,20 +673,20 @@ func TestFoodItemDelete(t *testing.T) {
 		dto.IngredientUnitType: dto.Volume,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "Cups",
-				Quantity: decimal.NewFromInt(240),
+				Name:   "Cups",
+				Amount: decimal.NewFromInt(240),
 			},
 			{
-				Name:     "1/4 Cups",
-				Quantity: decimal.NewFromInt(60),
+				Name:   "1/4 Cups",
+				Amount: decimal.NewFromInt(60),
 			},
 			{
-				Name:     "1/2 Cups",
-				Quantity: decimal.NewFromInt(120),
+				Name:   "1/2 Cups",
+				Amount: decimal.NewFromInt(120),
 			},
 			{
-				Name:     "2 Cups",
-				Quantity: decimal.NewFromInt(240),
+				Name:   "2 Cups",
+				Amount: decimal.NewFromInt(240),
 			},
 		},
 	})
@@ -698,7 +698,7 @@ func TestFoodItemDelete(t *testing.T) {
 		dto.FoodItemCategory:       dto.Lunch,
 		dto.FoodItemAmount:         1,
 		dto.FoodItemServingsName:   memberIngredient.Servings[0].Name,
-		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Quantity,
+		dto.FoodItemServingsAmount: memberIngredient.Servings[0].Amount,
 	})
 	memberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
 
@@ -708,7 +708,7 @@ func TestFoodItemDelete(t *testing.T) {
 		dto.FoodItemCategory:       dto.Lunch,
 		dto.FoodItemAmount:         1,
 		dto.FoodItemServingsName:   otherMemberIngredient.Servings[0].Name,
-		dto.FoodItemServingsAmount: otherMemberIngredient.Servings[0].Quantity,
+		dto.FoodItemServingsAmount: otherMemberIngredient.Servings[0].Amount,
 	})
 	otherMemberFoodItem := helpers.GetResponseObject[dto.FoodItem](t, res, http.StatusCreated)
 
@@ -804,8 +804,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -820,8 +820,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -835,8 +835,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -851,8 +851,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Volume,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "mL",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "mL",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -866,8 +866,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "dto.IngredientServings",
-					Quantity: decimal.Zero,
+					Name:   "dto.IngredientServings",
+					Amount: decimal.Zero,
 				},
 			},
 		},
@@ -881,8 +881,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "dto.IngredientServings",
-					Quantity: decimal.Zero,
+					Name:   "dto.IngredientServings",
+					Amount: decimal.Zero,
 				},
 			},
 		},
@@ -897,8 +897,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -911,8 +911,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -927,8 +927,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -942,8 +942,8 @@ func TestGetFoodItems(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -990,20 +990,20 @@ func TestGetFoodItems(t *testing.T) {
 		dto.IngredientUnitType: dto.Volume,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "Cups",
-				Quantity: decimal.NewFromInt(240),
+				Name:   "Cups",
+				Amount: decimal.NewFromInt(240),
 			},
 			{
-				Name:     "1/4 Cups",
-				Quantity: decimal.NewFromInt(60),
+				Name:   "1/4 Cups",
+				Amount: decimal.NewFromInt(60),
 			},
 			{
-				Name:     "1/2 Cups",
-				Quantity: decimal.NewFromInt(120),
+				Name:   "1/2 Cups",
+				Amount: decimal.NewFromInt(120),
 			},
 			{
-				Name:     "2 Cups",
-				Quantity: decimal.NewFromInt(240),
+				Name:   "2 Cups",
+				Amount: decimal.NewFromInt(240),
 			},
 		},
 	})
@@ -1014,7 +1014,7 @@ func TestGetFoodItems(t *testing.T) {
 		dto.FoodItemCategory:       dto.Lunch,
 		dto.FoodItemAmount:         1,
 		dto.FoodItemServingsName:   otherMemberIngredient.Servings[0].Name,
-		dto.FoodItemServingsAmount: otherMemberIngredient.Servings[0].Quantity,
+		dto.FoodItemServingsAmount: otherMemberIngredient.Servings[0].Amount,
 	})
 	res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
@@ -1028,7 +1028,7 @@ func TestGetFoodItems(t *testing.T) {
 			dto.FoodItemCategory:       dto.Breakfast,
 			dto.FoodItemAmount:         240,
 			dto.FoodItemServingsName:   memberIngredients["Organic Whole Milk"].Servings[0].Name,
-			dto.FoodItemServingsAmount: memberIngredients["Organic Whole Milk"].Servings[0].Quantity,
+			dto.FoodItemServingsAmount: memberIngredients["Organic Whole Milk"].Servings[0].Amount,
 		},
 		{
 			dto.FoodItemId:             memberIngredients["Simple Italian Chicken"].Id,
@@ -1036,7 +1036,7 @@ func TestGetFoodItems(t *testing.T) {
 			dto.FoodItemCategory:       dto.Lunch,
 			dto.FoodItemAmount:         1,
 			dto.FoodItemServingsName:   memberIngredients["Simple Italian Chicken"].Servings[0].Name,
-			dto.FoodItemServingsAmount: memberIngredients["Simple Italian Chicken"].Servings[0].Quantity,
+			dto.FoodItemServingsAmount: memberIngredients["Simple Italian Chicken"].Servings[0].Amount,
 		},
 		{
 			dto.FoodItemId:             memberIngredients["Whole Milk Greek Yogurt"].Id,
@@ -1044,7 +1044,7 @@ func TestGetFoodItems(t *testing.T) {
 			dto.FoodItemCategory:       dto.Dinner,
 			dto.FoodItemAmount:         170,
 			dto.FoodItemServingsName:   memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Name,
-			dto.FoodItemServingsAmount: memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Quantity,
+			dto.FoodItemServingsAmount: memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Amount,
 		},
 		{
 			dto.FoodItemId:             memberIngredients["Simple Spinach Scramble"].Id,
@@ -1052,7 +1052,7 @@ func TestGetFoodItems(t *testing.T) {
 			dto.FoodItemCategory:       dto.Breakfast,
 			dto.FoodItemAmount:         1,
 			dto.FoodItemServingsName:   memberIngredients["Simple Spinach Scramble"].Servings[0].Name,
-			dto.FoodItemServingsAmount: memberIngredients["Simple Spinach Scramble"].Servings[0].Quantity,
+			dto.FoodItemServingsAmount: memberIngredients["Simple Spinach Scramble"].Servings[0].Amount,
 		},
 		{
 			dto.FoodItemId:             memberIngredients["Simple Italian Chicken"].Id,
@@ -1060,7 +1060,7 @@ func TestGetFoodItems(t *testing.T) {
 			dto.FoodItemCategory:       dto.Lunch,
 			dto.FoodItemAmount:         1,
 			dto.FoodItemServingsName:   memberIngredients["Simple Italian Chicken"].Servings[0].Name,
-			dto.FoodItemServingsAmount: memberIngredients["Simple Italian Chicken"].Servings[0].Quantity,
+			dto.FoodItemServingsAmount: memberIngredients["Simple Italian Chicken"].Servings[0].Amount,
 		},
 		{
 			dto.FoodItemId:             memberIngredients["Whole Milk Greek Yogurt"].Id,
@@ -1068,7 +1068,7 @@ func TestGetFoodItems(t *testing.T) {
 			dto.FoodItemCategory:       dto.Snacks,
 			dto.FoodItemAmount:         170,
 			dto.FoodItemServingsName:   memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Name,
-			dto.FoodItemServingsAmount: memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Quantity,
+			dto.FoodItemServingsAmount: memberIngredients["Whole Milk Greek Yogurt"].Servings[0].Amount,
 		},
 		{
 			dto.FoodItemId:             memberIngredients["Organic Whole Milk"].Id,
@@ -1076,7 +1076,7 @@ func TestGetFoodItems(t *testing.T) {
 			dto.FoodItemCategory:       dto.Breakfast,
 			dto.FoodItemAmount:         240,
 			dto.FoodItemServingsName:   memberIngredients["Organic Whole Milk"].Servings[0].Name,
-			dto.FoodItemServingsAmount: memberIngredients["Organic Whole Milk"].Servings[0].Quantity,
+			dto.FoodItemServingsAmount: memberIngredients["Organic Whole Milk"].Servings[0].Amount,
 		},
 		{
 			dto.FoodItemId:             memberIngredients["Enriched Long Grain White Rice"].Id,
@@ -1084,7 +1084,7 @@ func TestGetFoodItems(t *testing.T) {
 			dto.FoodItemCategory:       dto.Lunch,
 			dto.FoodItemAmount:         45,
 			dto.FoodItemServingsName:   memberIngredients["Enriched Long Grain White Rice"].Servings[0].Name,
-			dto.FoodItemServingsAmount: memberIngredients["Enriched Long Grain White Rice"].Servings[0].Quantity,
+			dto.FoodItemServingsAmount: memberIngredients["Enriched Long Grain White Rice"].Servings[0].Amount,
 		},
 		{
 			dto.FoodItemId:             memberIngredients["Chicken Breast"].Id,
@@ -1092,7 +1092,7 @@ func TestGetFoodItems(t *testing.T) {
 			dto.FoodItemCategory:       dto.Dinner,
 			dto.FoodItemAmount:         300,
 			dto.FoodItemServingsName:   memberIngredients["Chicken Breast"].Servings[0].Name,
-			dto.FoodItemServingsAmount: memberIngredients["Chicken Breast"].Servings[0].Quantity,
+			dto.FoodItemServingsAmount: memberIngredients["Chicken Breast"].Servings[0].Amount,
 		},
 	}
 

@@ -17,7 +17,7 @@ CALL create_ingredient_servings(@ingredient_id, @servings::serving_info[]);
 -- name: GetIngredientsServingsById :many
 SELECT 
 	name,
-	quantity,
+	amount,
 	id
 FROM ingredient_servings
 WHERE ingredient_id = $1;
@@ -25,7 +25,7 @@ WHERE ingredient_id = $1;
 -- name: GetIngredientsServingsByIds :many
 SELECT 
 	name,
-	quantity,
+	amount,
 	id,
 	ingredient_id
 FROM ingredient_servings

@@ -16,9 +16,9 @@ CREATE TABLE food_log(
 	unit_type boolean NOT NULL, -- weight vs volume
 	brand text,
 	ingredients_id uuid REFERENCES ingredients (id) ON DELETE SET NULL,
-	quantity decimal NOT NULL, --total amount
+	amount decimal NOT NULL, --total amount
 	servings_name text NOT NULL,
-	servings_quantity decimal NOT NULL,
+	servings_amount decimal NOT NULL,
 	user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
 	created_at timestamp WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

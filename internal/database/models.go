@@ -18,22 +18,22 @@ type FoodCategory struct {
 }
 
 type FoodLog struct {
-	ID               uuid.UUID
-	Name             string
-	Date             pgtype.Date
-	Category         int
-	Fats             decimal.Decimal
-	Carbohydrates    decimal.Decimal
-	Protein          decimal.Decimal
-	Calories         decimal.Decimal
-	UnitType         bool
-	Brand            *string
-	IngredientsID    *uuid.UUID
-	Quantity         decimal.Decimal
-	ServingsName     string
-	ServingsQuantity decimal.Decimal
-	UserID           uuid.UUID
-	CreatedAt        pgtype.Timestamptz
+	ID             uuid.UUID
+	Name           string
+	Date           pgtype.Date
+	Category       int
+	Fats           decimal.Decimal
+	Carbohydrates  decimal.Decimal
+	Protein        decimal.Decimal
+	Calories       decimal.Decimal
+	UnitType       bool
+	Brand          *string
+	IngredientsID  *uuid.UUID
+	Amount         decimal.Decimal
+	ServingsName   string
+	ServingsAmount decimal.Decimal
+	UserID         uuid.UUID
+	CreatedAt      pgtype.Timestamptz
 }
 
 type Household struct {
@@ -81,7 +81,7 @@ type Ingredient struct {
 
 type IngredientServing struct {
 	Name         string
-	Quantity     decimal.Decimal
+	Amount       decimal.Decimal
 	IngredientID uuid.UUID
 	ID           int16
 }
@@ -119,7 +119,7 @@ type VFood struct {
 
 type VServing struct {
 	Name         string
-	Quantity     decimal.Decimal
+	Amount       decimal.Decimal
 	IngredientID uuid.UUID
 	ID           int16
 }

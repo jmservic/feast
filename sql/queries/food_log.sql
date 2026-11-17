@@ -1,5 +1,5 @@
 -- name: CreateFoodItem :one
-INSERT INTO food_log (name, date, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, quantity, servings_name, servings_quantity, user_id)
+INSERT INTO food_log (name, date, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, amount, servings_name, servings_amount, user_id)
 VALUES (
 $1, 
 $2,
@@ -37,9 +37,9 @@ SET
 	carbohydrates = $5,
 	protein = $6,
 	calories = $7,
-	quantity = $8,
+	amount = $8,
 	servings_name = $9,
-	servings_quantity = $10
+	servings_amount = $10
 WHERE id = $1 
 RETURNING *;
 

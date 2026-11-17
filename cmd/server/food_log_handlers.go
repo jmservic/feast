@@ -54,9 +54,9 @@ func (cfg apiConfig) handlerGetFoodItem(w http.ResponseWriter, r *http.Request, 
 		Calories:       storedFoodItem.Calories,
 		Brand:          brand,
 		UnitType:       dto.Measurement(storedFoodItem.UnitType),
-		Amount:         storedFoodItem.Quantity,
+		Amount:         storedFoodItem.Amount,
 		ServingsName:   storedFoodItem.ServingsName,
-		ServingsAmount: storedFoodItem.ServingsQuantity,
+		ServingsAmount: storedFoodItem.ServingsAmount,
 		UserId:         userId,
 	})
 }
@@ -114,9 +114,9 @@ func (cfg apiConfig) handlerGetFoodItems(w http.ResponseWriter, r *http.Request,
 			Calories:       storedFoodItem.Calories,
 			Brand:          brand,
 			UnitType:       dto.Measurement(storedFoodItem.UnitType),
-			Amount:         storedFoodItem.Quantity,
+			Amount:         storedFoodItem.Amount,
 			ServingsName:   storedFoodItem.ServingsName,
-			ServingsAmount: storedFoodItem.ServingsQuantity,
+			ServingsAmount: storedFoodItem.ServingsAmount,
 			UserId:         storedFoodItem.UserID,
 		}
 		foodItems = append(foodItems, temp)
@@ -163,20 +163,20 @@ func (cfg apiConfig) handlerCreateFoodItem(w http.ResponseWriter, r *http.Reques
 	}
 
 	storedFoodItem, err := cfg.db.CreateFoodItem(r.Context(), database.CreateFoodItemParams{
-		Name:             ingredient.Name,
-		Date:             date,
-		Category:         int(itemInfo.Category),
-		Fats:             ingredient.Fats.Mul(itemInfo.Amount),
-		Carbohydrates:    ingredient.Carbohydrates.Mul(itemInfo.Amount),
-		Protein:          ingredient.Protein.Mul(itemInfo.Amount),
-		Calories:         ingredient.Calories.Mul(itemInfo.Amount),
-		UnitType:         ingredient.UnitType,
-		Brand:            ingredient.Brand,
-		IngredientsID:    &ingredient.ID,
-		Quantity:         itemInfo.Amount,
-		ServingsName:     itemInfo.ServingsName,
-		ServingsQuantity: itemInfo.AmountInServings,
-		UserID:           userId,
+		Name:           ingredient.Name,
+		Date:           date,
+		Category:       int(itemInfo.Category),
+		Fats:           ingredient.Fats.Mul(itemInfo.Amount),
+		Carbohydrates:  ingredient.Carbohydrates.Mul(itemInfo.Amount),
+		Protein:        ingredient.Protein.Mul(itemInfo.Amount),
+		Calories:       ingredient.Calories.Mul(itemInfo.Amount),
+		UnitType:       ingredient.UnitType,
+		Brand:          ingredient.Brand,
+		IngredientsID:  &ingredient.ID,
+		Amount:         itemInfo.Amount,
+		ServingsName:   itemInfo.ServingsName,
+		ServingsAmount: itemInfo.AmountInServings,
+		UserID:         userId,
 	})
 
 	if err != nil {
@@ -200,9 +200,9 @@ func (cfg apiConfig) handlerCreateFoodItem(w http.ResponseWriter, r *http.Reques
 		Calories:       storedFoodItem.Calories,
 		Brand:          brand,
 		UnitType:       dto.Measurement(storedFoodItem.UnitType),
-		Amount:         storedFoodItem.Quantity,
+		Amount:         storedFoodItem.Amount,
 		ServingsName:   storedFoodItem.ServingsName,
-		ServingsAmount: storedFoodItem.ServingsQuantity,
+		ServingsAmount: storedFoodItem.ServingsAmount,
 		UserId:         userId,
 	})
 }
@@ -261,20 +261,20 @@ func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Reques
 		foodItemUpdateParams.Category = storedFoodItem.Category
 	}
 
-	if itemUpdateInfo.Amount != nil && itemUpdateInfo.Amount.IsPositive() && *itemUpdateInfo.Amount != storedFoodItem.Quantity {
-		oldAmount := storedFoodItem.Quantity
+	if itemUpdateInfo.Amount != nil && itemUpdateInfo.Amount.IsPositive() && *itemUpdateInfo.Amount != storedFoodItem.Amount {
+		oldAmount := storedFoodItem.Amount
 		newAmount := *itemUpdateInfo.Amount
 		foodItemUpdateParams.Fats = storedFoodItem.Fats.Div(oldAmount).Mul(newAmount)
 		foodItemUpdateParams.Carbohydrates = storedFoodItem.Carbohydrates.Div(oldAmount).Mul(newAmount)
 		foodItemUpdateParams.Protein = storedFoodItem.Protein.Div(oldAmount).Mul(newAmount)
 		foodItemUpdateParams.Calories = storedFoodItem.Calories.Div(oldAmount).Mul(newAmount)
-		foodItemUpdateParams.Quantity = newAmount
+		foodItemUpdateParams.Amount = newAmount
 	} else {
 		foodItemUpdateParams.Fats = storedFoodItem.Fats
 		foodItemUpdateParams.Carbohydrates = storedFoodItem.Carbohydrates
 		foodItemUpdateParams.Protein = storedFoodItem.Protein
 		foodItemUpdateParams.Calories = storedFoodItem.Calories
-		foodItemUpdateParams.Quantity = storedFoodItem.Quantity
+		foodItemUpdateParams.Amount = storedFoodItem.Amount
 	}
 
 	if itemUpdateInfo.ServingsName != nil && *itemUpdateInfo.ServingsName != "" {
@@ -284,9 +284,9 @@ func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Reques
 	}
 
 	if itemUpdateInfo.AmountInServings != nil && !itemUpdateInfo.AmountInServings.IsNegative() {
-		foodItemUpdateParams.ServingsQuantity = *itemUpdateInfo.AmountInServings
+		foodItemUpdateParams.ServingsAmount = *itemUpdateInfo.AmountInServings
 	} else {
-		foodItemUpdateParams.ServingsQuantity = storedFoodItem.ServingsQuantity
+		foodItemUpdateParams.ServingsAmount = storedFoodItem.ServingsAmount
 	}
 
 	updatedFoodItem, err := cfg.db.UpdateFoodItem(r.Context(), foodItemUpdateParams)
@@ -311,9 +311,9 @@ func (cfg apiConfig) handlerUpdateFoodItem(w http.ResponseWriter, r *http.Reques
 		Calories:       updatedFoodItem.Calories,
 		Brand:          brand,
 		UnitType:       dto.Measurement(updatedFoodItem.UnitType),
-		Amount:         updatedFoodItem.Quantity,
+		Amount:         updatedFoodItem.Amount,
 		ServingsName:   updatedFoodItem.ServingsName,
-		ServingsAmount: updatedFoodItem.ServingsQuantity,
+		ServingsAmount: updatedFoodItem.ServingsAmount,
 		UserId:         userId,
 	})
 }

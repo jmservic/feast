@@ -56,9 +56,8 @@ func (fI FoodItem) Normalize() FoodItem {
 
 func (fI FoodItem) UpdateClone(updates map[string]any) FoodItem {
 	oldAmount := fI.Amount
-	newAmount := fI.Amount
 	if amountVal, ok := updates[string(FoodItemAmount)]; ok {
-		newAmount, _ = helpers.CreateDecimal(amountVal)
+		newAmount, _ := helpers.CreateDecimal(amountVal)
 		if !newAmount.IsPositive() {
 			return fI
 		}

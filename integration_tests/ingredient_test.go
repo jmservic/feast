@@ -53,8 +53,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "Servings",
-						Quantity: decimal.Zero,
+						Name:   "Servings",
+						Amount: decimal.Zero,
 					},
 				},
 			},
@@ -73,20 +73,20 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Volume,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "Cups",
-						Quantity: decimal.NewFromInt(240),
+						Name:   "Cups",
+						Amount: decimal.NewFromInt(240),
 					},
 					{
-						Name:     "1/4 Cups",
-						Quantity: decimal.NewFromInt(60),
+						Name:   "1/4 Cups",
+						Amount: decimal.NewFromInt(60),
 					},
 					{
-						Name:     "1/2 Cups",
-						Quantity: decimal.NewFromInt(120),
+						Name:   "1/2 Cups",
+						Amount: decimal.NewFromInt(120),
 					},
 					{
-						Name:     "2 Cups",
-						Quantity: decimal.NewFromInt(240),
+						Name:   "2 Cups",
+						Amount: decimal.NewFromInt(240),
 					},
 				},
 			},
@@ -100,8 +100,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Volume,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "Cups",
-						Quantity: decimal.NewFromInt(240),
+						Name:   "Cups",
+						Amount: decimal.NewFromInt(240),
 					},
 				},
 			},
@@ -118,8 +118,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(45),
+						Name:   "grams",
+						Amount: decimal.NewFromInt(45),
 					},
 				},
 			},
@@ -137,8 +137,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(45),
+						Name:   "grams",
+						Amount: decimal.NewFromInt(45),
 					},
 				},
 			},
@@ -157,8 +157,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(122),
+						Name:   "grams",
+						Amount: decimal.NewFromInt(122),
 					},
 				},
 			},
@@ -177,8 +177,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(122),
+						Name:   "grams",
+						Amount: decimal.NewFromInt(122),
 					},
 				},
 			},
@@ -197,8 +197,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(122),
+						Name:   "grams",
+						Amount: decimal.NewFromInt(122),
 					},
 				},
 			},
@@ -217,8 +217,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(122),
+						Name:   "grams",
+						Amount: decimal.NewFromInt(122),
 					},
 				},
 			},
@@ -236,8 +236,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(122),
+						Name:   "grams",
+						Amount: decimal.NewFromInt(122),
 					},
 				},
 			},
@@ -256,8 +256,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(122),
+						Name:   "grams",
+						Amount: decimal.NewFromInt(122),
 					},
 				},
 			},
@@ -276,8 +276,8 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(122),
+						Name:   "grams",
+						Amount: decimal.NewFromInt(122),
 					},
 				},
 			},
@@ -325,12 +325,12 @@ func TestCreateIngredient(t *testing.T) {
 				dto.IngredientUnitType: dto.Weight,
 				dto.IngredientServings: []dto.ServingInfo{
 					{
-						Name:     "grams",
-						Quantity: decimal.Zero,
+						Name:   "grams",
+						Amount: decimal.Zero,
 					},
 					{
-						Name:     "ounces",
-						Quantity: decimal.NewFromInt(28),
+						Name:   "ounces",
+						Amount: decimal.NewFromInt(28),
 					},
 				},
 			},
@@ -447,7 +447,7 @@ func TestCreateIngredient(t *testing.T) {
 				for _, serving := range servings {
 					found := false
 					for _, rtnServing := range ingredient.Servings {
-						if rtnServing.Name == serving.Name && rtnServing.Quantity.Equal(serving.Quantity) {
+						if rtnServing.Name == serving.Name && rtnServing.Amount.Equal(serving.Amount) {
 							found = true
 							break
 						}
@@ -497,8 +497,8 @@ func TestGetIngredient(t *testing.T) {
 		dto.IngredientUnitType: dto.Weight,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "Servings",
-				Quantity: decimal.Zero,
+				Name:   "Servings",
+				Amount: decimal.Zero,
 			},
 		}})
 	ingredient := helpers.GetResponseObject[dto.IngredientResponse](t, res, http.StatusCreated)
@@ -567,8 +567,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -583,8 +583,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -598,8 +598,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -614,8 +614,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Volume,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "mL",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "mL",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -629,8 +629,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "dto.IngredientServings",
-					Quantity: decimal.Zero,
+					Name:   "dto.IngredientServings",
+					Amount: decimal.Zero,
 				},
 			},
 		},
@@ -644,8 +644,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "dto.IngredientServings",
-					Quantity: decimal.Zero,
+					Name:   "dto.IngredientServings",
+					Amount: decimal.Zero,
 				},
 			},
 		},
@@ -660,8 +660,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -674,8 +674,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -690,8 +690,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -705,8 +705,8 @@ func TestGetIngredients(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -821,8 +821,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -837,8 +837,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -852,8 +852,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -868,8 +868,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Volume,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "mL",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "mL",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -883,8 +883,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "dto.IngredientServings",
-					Quantity: decimal.Zero,
+					Name:   "dto.IngredientServings",
+					Amount: decimal.Zero,
 				},
 			},
 		},
@@ -898,8 +898,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "dto.IngredientServings",
-					Quantity: decimal.Zero,
+					Name:   "dto.IngredientServings",
+					Amount: decimal.Zero,
 				},
 			},
 		},
@@ -914,8 +914,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -928,8 +928,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -944,8 +944,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -959,8 +959,8 @@ func TestUpdateIngredient(t *testing.T) {
 			dto.IngredientUnitType: dto.Weight,
 			dto.IngredientServings: []dto.ServingInfo{
 				{
-					Name:     "grams",
-					Quantity: decimal.NewFromInt(1),
+					Name:   "grams",
+					Amount: decimal.NewFromInt(1),
 				},
 			},
 		},
@@ -1001,8 +1001,8 @@ func TestUpdateIngredient(t *testing.T) {
 		dto.IngredientUnitType: dto.Weight,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "grams",
-				Quantity: decimal.NewFromInt(1),
+				Name:   "grams",
+				Amount: decimal.NewFromInt(1),
 			},
 		},
 	})
@@ -1079,9 +1079,9 @@ func TestUpdateIngredient(t *testing.T) {
 			payload: map[string]any{
 				string(dto.IngredientServings): []dto.ServingInfo{
 					{
-						Id:       1,
-						Name:     "ounce",
-						Quantity: decimal.NewFromFloat(28.3495231),
+						Id:     1,
+						Name:   "ounce",
+						Amount: decimal.NewFromFloat(28.3495231),
 					},
 				},
 			},
@@ -1094,17 +1094,17 @@ func TestUpdateIngredient(t *testing.T) {
 			payload: map[string]any{
 				string(dto.IngredientServings): []dto.ServingInfo{
 					{
-						Id:       1,
-						Name:     "grams",
-						Quantity: decimal.NewFromInt(1),
+						Id:     1,
+						Name:   "grams",
+						Amount: decimal.NewFromInt(1),
 					},
 					{
-						Name:     "Serving",
-						Quantity: decimal.NewFromFloat(28.3495231 * 4),
+						Name:   "Serving",
+						Amount: decimal.NewFromFloat(28.3495231 * 4),
 					},
 					{
-						Name:     "Double Helping",
-						Quantity: decimal.NewFromFloat(28.3495231 * 8),
+						Name:   "Double Helping",
+						Amount: decimal.NewFromFloat(28.3495231 * 8),
 					},
 				},
 			},
@@ -1125,8 +1125,8 @@ func TestUpdateIngredient(t *testing.T) {
 				string(dto.IngredientAmount):   240,
 				string(dto.IngredientServings): []dto.ServingInfo{
 					{
-						Name:     "Cup",
-						Quantity: decimal.NewFromInt(240),
+						Name:   "Cup",
+						Amount: decimal.NewFromInt(240),
 					},
 				},
 				string(dto.IngredientRemovedServings): []int{1},
@@ -1267,8 +1267,8 @@ func TestUpdateIngredient(t *testing.T) {
 			payload: map[string]any{
 				string(dto.IngredientServings): []dto.ServingInfo{
 					{
-						Name:     "bad",
-						Quantity: decimal.NewFromInt(-1),
+						Name:   "bad",
+						Amount: decimal.NewFromInt(-1),
 					},
 				},
 			},
@@ -1281,8 +1281,8 @@ func TestUpdateIngredient(t *testing.T) {
 			payload: map[string]any{
 				string(dto.IngredientServings): []dto.ServingInfo{
 					{
-						Name:     "ounce",
-						Quantity: decimal.NewFromInt(28),
+						Name:   "ounce",
+						Amount: decimal.NewFromInt(28),
 					},
 				},
 			},
@@ -1377,8 +1377,8 @@ func TestDeleteIngredient(t *testing.T) {
 		dto.IngredientUnitType: dto.Weight,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "grams",
-				Quantity: decimal.NewFromInt(1),
+				Name:   "grams",
+				Amount: decimal.NewFromInt(1),
 			},
 		},
 	})
@@ -1394,8 +1394,8 @@ func TestDeleteIngredient(t *testing.T) {
 		dto.IngredientUnitType: dto.Weight,
 		dto.IngredientServings: []dto.ServingInfo{
 			{
-				Name:     "grams",
-				Quantity: decimal.NewFromInt(1),
+				Name:   "grams",
+				Amount: decimal.NewFromInt(1),
 			},
 		},
 	})

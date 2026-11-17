@@ -79,9 +79,9 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 	for _, dbServing := range servings {
 		index := ingredientIndexes[dbServing.IngredientID]
 		serving := dto.ServingInfo{
-			Id:       dbServing.ID,
-			Name:     dbServing.Name,
-			Quantity: dbServing.Quantity,
+			Id:     dbServing.ID,
+			Name:   dbServing.Name,
+			Amount: dbServing.Amount,
 		}
 		ingredients[index].Servings = append(ingredients[index].Servings, serving)
 	}
@@ -133,9 +133,9 @@ func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request
 
 		for _, serving := range dbServings {
 			servings = append(servings, dto.ServingInfo{
-				Name:     serving.Name,
-				Quantity: serving.Quantity,
-				Id:       serving.ID,
+				Name:   serving.Name,
+				Amount: serving.Amount,
+				Id:     serving.ID,
 			})
 		}
 
@@ -199,11 +199,11 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 	}
 
 	for _, servings := range newIngredient.Servings {
-		if servings.Quantity.IsNegative() {
+		if servings.Amount.IsNegative() {
 			respondWithError(w, http.StatusBadRequest, constants.InvalidServingsErrStr, nil)
 			return
 		}
-		if len(newIngredient.Servings) > 1 && servings.Quantity.IsZero() {
+		if len(newIngredient.Servings) > 1 && servings.Amount.IsZero() {
 			respondWithError(w, http.StatusBadRequest, constants.InvalidMultipleServingsErrStr, nil)
 			return
 		}
@@ -265,9 +265,9 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 
 	for _, serving := range dbServings {
 		servings = append(servings, dto.ServingInfo{
-			Name:     serving.Name,
-			Quantity: serving.Quantity,
-			Id:       serving.ID,
+			Name:   serving.Name,
+			Amount: serving.Amount,
+			Id:     serving.ID,
 		})
 	}
 
@@ -428,9 +428,9 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 	//Add stored Servings
 	for _, serving := range storedServings {
 		serv := dto.ServingInfo{
-			Id:       serving.ID,
-			Name:     serving.Name,
-			Quantity: serving.Quantity,
+			Id:     serving.ID,
+			Name:   serving.Name,
+			Amount: serving.Amount,
 		}
 
 		finalServingsState[serv.Id] = serv
@@ -462,12 +462,12 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 
 	for _, serving := range finalServingsState {
 
-		if serving.Quantity.IsNegative() {
+		if serving.Amount.IsNegative() {
 			respondWithError(w, http.StatusBadRequest, constants.ServingsCreationErrStr, nil)
 			return
 		}
 
-		if serving.Quantity.IsZero() && numOfFinalServings > 1 {
+		if serving.Amount.IsZero() && numOfFinalServings > 1 {
 			respondWithError(w, http.StatusBadRequest, constants.InvalidMultipleServingsErrStr, nil)
 			return
 		}
@@ -516,9 +516,9 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 
 	for _, serving := range servings {
 		rtnServings = append(rtnServings, dto.ServingInfo{
-			Id:       serving.ID,
-			Name:     serving.Name,
-			Quantity: serving.Quantity,
+			Id:     serving.ID,
+			Name:   serving.Name,
+			Amount: serving.Amount,
 		})
 	}
 

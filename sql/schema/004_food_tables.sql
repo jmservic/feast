@@ -14,7 +14,7 @@ CREATE TABLE ingredients (
 
 CREATE TABLE ingredient_servings (
 	name text NOT NULL,
-	quantity decimal NOT NULL,
+	amount decimal NOT NULL,
 	ingredient_id uuid NOT NULL REFERENCES ingredients (id) ON DELETE CASCADE,
 	id smallint NOT NULL,
 	UNIQUE(ingredient_id, id) 
@@ -37,7 +37,7 @@ FROM ingredients i;
 CREATE VIEW v_servings AS 
 SELECT
 	name,
-	quantity,
+	amount,
 	ingredient_id,
 	id
 FROM ingredient_servings;
@@ -46,7 +46,7 @@ FROM ingredient_servings;
 CREATE TYPE serving_info AS (
 	id smallint,
 	name text,
-	quantity decimal
+	amount decimal
 );
 
 -- procedures
@@ -81,11 +81,11 @@ BEGIN
 		'WHEN MATCHED THEN '
 			'UPDATE ' 
 			'	SET name = vs.name, ' 
-					' quantity = vs.quantity '
+					' amount = vs.amount '
 		'WHEN NOT MATCHED THEN '
-			'INSERT (name, quantity, ingredient_id, id) VALUES ( '
+			'INSERT (name, amount, ingredient_id, id) VALUES ( '
 				'vs.name, '
-				'vs.quantity, '
+				'vs.amount, '
 				'$2, '
 				'nextval(''v_serving_id_sequence'') '
 			'); '
