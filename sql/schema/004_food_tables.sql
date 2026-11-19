@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE ingredients (
-	id bigserial PRIMARY KEY,
+	id uuid PRIMARY KEY DEFAULT uuidv7(),
 	name text NOT NULL,
 	fats numeric(26, 16) NOT NULL,
 	carbohydrates numeric(26, 16) NOT NULL,
@@ -14,8 +14,8 @@ CREATE TABLE ingredients (
 
 CREATE TABLE ingredient_servings (
 	name text NOT NULL,
-	quantity decimal NOT NULL,
-	ingredient_id bigint NOT NULL REFERENCES ingredients (id) ON DELETE CASCADE,
+	amount decimal NOT NULL,
+	ingredient_id uuid NOT NULL REFERENCES ingredients (id) ON DELETE CASCADE,
 	id smallint NOT NULL,
 	UNIQUE(ingredient_id, id) 
 );
@@ -37,7 +37,7 @@ FROM ingredients i;
 CREATE VIEW v_servings AS 
 SELECT
 	name,
-	quantity,
+	amount,
 	ingredient_id,
 	id
 FROM ingredient_servings;
@@ -46,14 +46,14 @@ FROM ingredient_servings;
 CREATE TYPE serving_info AS (
 	id smallint,
 	name text,
-	quantity decimal
+	amount decimal
 );
 
 -- procedures
 -- +goose StatementBegin
 -- Update this to create and update. We need an integer id for the servings, so they can be targeted. 
 -- The ingredient_servings Unique will then be the ingredient_id and id
-CREATE OR REPLACE PROCEDURE create_ingredient_servings ( v_ingredient_id bigint, v_servings serving_info[] ) AS $$
+CREATE OR REPLACE PROCEDURE create_ingredient_servings ( v_ingredient_id uuid, v_servings serving_info[] ) AS $$
 DECLARE
 	v_serving_info serving_info;
 	serving_id_start smallint;
@@ -81,11 +81,11 @@ BEGIN
 		'WHEN MATCHED THEN '
 			'UPDATE ' 
 			'	SET name = vs.name, ' 
-					' quantity = vs.quantity '
+					' amount = vs.amount '
 		'WHEN NOT MATCHED THEN '
-			'INSERT (name, quantity, ingredient_id, id) VALUES ( '
+			'INSERT (name, amount, ingredient_id, id) VALUES ( '
 				'vs.name, '
-				'vs.quantity, '
+				'vs.amount, '
 				'$2, '
 				'nextval(''v_serving_id_sequence'') '
 			'); '

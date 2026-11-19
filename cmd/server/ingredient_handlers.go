@@ -11,7 +11,7 @@ import (
 	"github.com/shopspring/decimal"
 	"net/http"
 	"slices"
-	"strconv"
+	//"strconv"
 	"strings"
 	"sync"
 )
@@ -43,8 +43,8 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 	}
 
 	ingredients := make([]dto.Ingredient, 0, len(storedIngredients))
-	ingredientIndexes := make(map[int64]int, len(storedIngredients))
-	ingredientIds := make([]int, 0, len(storedIngredients))
+	ingredientIndexes := make(map[uuid.UUID]int, len(storedIngredients))
+	ingredientIds := make([]uuid.UUID, 0, len(storedIngredients))
 
 	for index, storedIngredient := range storedIngredients {
 		var brand string
@@ -58,14 +58,14 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 			Carbohydrates: storedIngredient.Carbohydrates,
 			Protein:       storedIngredient.Protein,
 			Calories:      storedIngredient.Calories,
-			Unittype:      dto.Measurement(storedIngredient.UnitType),
+			UnitType:      dto.Measurement(storedIngredient.UnitType),
 			Id:            storedIngredient.ID,
 			Brand:         brand,
 			UserId:        storedIngredient.UserID,
 		}
 
 		ingredients = append(ingredients, ingredient)
-		ingredientIds = append(ingredientIds, int(ingredient.Id))
+		ingredientIds = append(ingredientIds, ingredient.Id)
 		ingredientIndexes[ingredient.Id] = index
 	}
 
@@ -79,9 +79,9 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 	for _, dbServing := range servings {
 		index := ingredientIndexes[dbServing.IngredientID]
 		serving := dto.ServingInfo{
-			Id:       dbServing.ID,
-			Name:     dbServing.Name,
-			Quantity: dbServing.Quantity,
+			Id:     dbServing.ID,
+			Name:   dbServing.Name,
+			Amount: dbServing.Amount,
 		}
 		ingredients[index].Servings = append(ingredients[index].Servings, serving)
 	}
@@ -90,9 +90,9 @@ func (cfg apiConfig) handlerGetIngredients(w http.ResponseWriter, r *http.Reques
 }
 
 func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	ingredientId, err := strconv.ParseInt(r.PathValue("ingredient_id"), 10, 64)
+	ingredientId, err := uuid.Parse(r.PathValue("ingredient_id"))
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, constants.InvalidIntStringErrStr, err)
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request
 		ingredient.Carbohydrates = storedIngredient.Carbohydrates
 		ingredient.Protein = storedIngredient.Protein
 		ingredient.Calories = storedIngredient.Calories
-		ingredient.Unittype = dto.Measurement(storedIngredient.UnitType)
+		ingredient.UnitType = dto.Measurement(storedIngredient.UnitType)
 		ingredient.Brand = brand
 		ingredient.UserId = storedIngredient.UserID
 		ingredient.Id = storedIngredient.ID
@@ -133,9 +133,9 @@ func (cfg apiConfig) handlerGetIngredient(w http.ResponseWriter, r *http.Request
 
 		for _, serving := range dbServings {
 			servings = append(servings, dto.ServingInfo{
-				Name:     serving.Name,
-				Quantity: serving.Quantity,
-				Id:       serving.ID,
+				Name:   serving.Name,
+				Amount: serving.Amount,
+				Id:     serving.ID,
 			})
 		}
 
@@ -199,11 +199,11 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 	}
 
 	for _, servings := range newIngredient.Servings {
-		if servings.Quantity.IsNegative() {
+		if servings.Amount.IsNegative() {
 			respondWithError(w, http.StatusBadRequest, constants.InvalidServingsErrStr, nil)
 			return
 		}
-		if len(newIngredient.Servings) > 1 && servings.Quantity.IsZero() {
+		if len(newIngredient.Servings) > 1 && servings.Amount.IsZero() {
 			respondWithError(w, http.StatusBadRequest, constants.InvalidMultipleServingsErrStr, nil)
 			return
 		}
@@ -232,7 +232,7 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 		Carbohydrates: newIngredient.Carbohydrates.Div(newIngredient.Amount),
 		Protein:       newIngredient.Protein.Div(newIngredient.Amount),
 		Calories:      newIngredient.Calories.Div(newIngredient.Amount),
-		UnitType:      bool(newIngredient.Unittype),
+		UnitType:      bool(newIngredient.UnitType),
 		Brand:         brandStoreVal,
 		UserID:        &userId,
 	})
@@ -265,9 +265,9 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 
 	for _, serving := range dbServings {
 		servings = append(servings, dto.ServingInfo{
-			Name:     serving.Name,
-			Quantity: serving.Quantity,
-			Id:       serving.ID,
+			Name:   serving.Name,
+			Amount: serving.Amount,
+			Id:     serving.ID,
 		})
 	}
 
@@ -291,7 +291,7 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 		Protein:       storedIngredient.Protein,
 		Calories:      storedIngredient.Calories,
 		Amount:        decimal.NewFromInt(1),
-		Unittype:      dto.Measurement(storedIngredient.UnitType),
+		UnitType:      dto.Measurement(storedIngredient.UnitType),
 		Brand:         brandRtnVal,
 		UserId:        storedIngredient.UserID,
 		Servings:      servings,
@@ -299,9 +299,9 @@ func (cfg apiConfig) handlerCreateIngredient(w http.ResponseWriter, r *http.Requ
 }
 
 func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	ingredientId, err := strconv.ParseInt(r.PathValue("ingredient_id"), 10, 64)
+	ingredientId, err := uuid.Parse(r.PathValue("ingredient_id"))
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, constants.InvalidIntStringErrStr, err)
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
 		return
 	}
 
@@ -335,7 +335,7 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 		Calories        *decimal.Decimal  `json:"calories"`
 		Brand           *string           `json:"brand"`
 		Amount          *decimal.Decimal  `json:"amount"`
-		Unittype        *dto.Measurement  `json:"unittype"`
+		UnitType        *dto.Measurement  `json:"unit_type"`
 		Servings        []dto.ServingInfo `json:"servings"`
 		RemovedServings []int16           `json:"removed_servings"`
 	}{}
@@ -417,8 +417,8 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 		updateParams.Brand = storedIngredient.Brand
 	}
 
-	if params.Unittype != nil {
-		updateParams.UnitType = bool(*params.Unittype)
+	if params.UnitType != nil {
+		updateParams.UnitType = bool(*params.UnitType)
 	} else {
 		updateParams.UnitType = storedIngredient.UnitType
 	}
@@ -428,9 +428,9 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 	//Add stored Servings
 	for _, serving := range storedServings {
 		serv := dto.ServingInfo{
-			Id:       serving.ID,
-			Name:     serving.Name,
-			Quantity: serving.Quantity,
+			Id:     serving.ID,
+			Name:   serving.Name,
+			Amount: serving.Amount,
 		}
 
 		finalServingsState[serv.Id] = serv
@@ -462,12 +462,12 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 
 	for _, serving := range finalServingsState {
 
-		if serving.Quantity.IsNegative() {
+		if serving.Amount.IsNegative() {
 			respondWithError(w, http.StatusBadRequest, constants.ServingsCreationErrStr, nil)
 			return
 		}
 
-		if serving.Quantity.IsZero() && numOfFinalServings > 1 {
+		if serving.Amount.IsZero() && numOfFinalServings > 1 {
 			respondWithError(w, http.StatusBadRequest, constants.InvalidMultipleServingsErrStr, nil)
 			return
 		}
@@ -516,9 +516,9 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 
 	for _, serving := range servings {
 		rtnServings = append(rtnServings, dto.ServingInfo{
-			Id:       serving.ID,
-			Name:     serving.Name,
-			Quantity: serving.Quantity,
+			Id:     serving.ID,
+			Name:   serving.Name,
+			Amount: serving.Amount,
 		})
 	}
 
@@ -535,7 +535,7 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 		Protein:       updatedIngredient.Protein,
 		Calories:      updatedIngredient.Calories,
 		Amount:        decimal.NewFromInt(1),
-		Unittype:      dto.Measurement(updatedIngredient.UnitType),
+		UnitType:      dto.Measurement(updatedIngredient.UnitType),
 		Brand:         brandRtnVal,
 		UserId:        updatedIngredient.UserID,
 		Servings:      rtnServings,
@@ -543,9 +543,9 @@ func (cfg apiConfig) handlerUpdateIngredient(w http.ResponseWriter, r *http.Requ
 }
 
 func (cfg apiConfig) handlerDeleteIngredient(w http.ResponseWriter, r *http.Request, userId uuid.UUID) {
-	ingredientId, err := strconv.ParseInt(r.PathValue("ingredient_id"), 10, 64)
+	ingredientId, err := uuid.Parse(r.PathValue("ingredient_id"))
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, constants.InvalidIntStringErrStr, err)
+		respondWithError(w, http.StatusBadRequest, constants.InvalidUUIDErrStr, err)
 		return
 	}
 

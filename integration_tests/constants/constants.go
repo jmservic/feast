@@ -1,6 +1,8 @@
 package constants
 
 const (
+	FoodLogsPath                = "/api/logs"
+	FoodlogsIdPath              = FoodLogsPath + "/%v"
 	HouseholdsPath              = "/api/households"
 	IngredientsPath             = "/api/ingredients"
 	IngredientsIdPath           = IngredientsPath + "/%v"

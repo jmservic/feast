@@ -1,0 +1,99 @@
+package dto
+
+import (
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/jmservic/feast/integration_tests/constants"
+	"github.com/jmservic/feast/integration_tests/helpers"
+	//"io"
+	"net/http"
+	"net/url"
+	"time"
+)
+
+func (c Client) CreateFoodItem(token string, params map[FoodItemKeys]any) *http.Response {
+	body := helpers.CreateJSONReader(params, c.t)
+
+	req, err := http.NewRequest(http.MethodPost, c.feastUrl+constants.FoodLogsPath, body)
+	if err != nil {
+		c.t.Fatalf("Error occurred when creating the get request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}
+
+func (c Client) GetFoodItem(token string, id uuid.UUID) *http.Response {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(c.feastUrl+constants.FoodlogsIdPath, id), nil)
+	if err != nil {
+		c.t.Fatalf("Error occurred when creating the get request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}
+
+func (c Client) GetFoodItems(token string, startTime, endTime *time.Time) *http.Response {
+	req, err := http.NewRequest(http.MethodGet, c.feastUrl+constants.FoodLogsPath, nil)
+	queryParams := url.Values{}
+	if startTime != nil {
+		queryParams.Add("start", startTime.Format(time.DateOnly))
+	}
+	if endTime != nil {
+		queryParams.Add("end", endTime.Format(time.DateOnly))
+	}
+
+	req.URL.RawQuery = queryParams.Encode()
+	if err != nil {
+		c.t.Fatalf("Error occurred when creating the get request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}
+
+func (c Client) UpdateFoodItem(token string, id uuid.UUID, updates map[string]any) *http.Response {
+	body := helpers.CreateJSONReader(updates, c.t)
+	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf(c.feastUrl+constants.FoodlogsIdPath, id), body)
+	if err != nil {
+		c.t.Fatalf("Error occurred when creating the get request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}
+
+func (c Client) DeleteFoodItem(token string, id uuid.UUID) *http.Response {
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf(c.feastUrl+constants.FoodlogsIdPath, id), nil)
+	if err != nil {
+		c.t.Fatalf("Error occurred when creating the get request: %v", err)
+	}
+
+	req.Header.Add("Authorization", "Bearer "+token)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.t.Fatalf("Unexpected error: %v", err)
+	}
+
+	return res
+}

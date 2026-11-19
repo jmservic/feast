@@ -70,7 +70,7 @@ CALL create_ingredient_servings($1, $2::serving_info[])
 `
 
 type CreateIngredientServingsParams struct {
-	IngredientID int64
+	IngredientID uuid.UUID
 	Servings     []dto.ServingInfo
 }
 
@@ -84,7 +84,7 @@ DELETE FROM ingredients
 WHERE id = $1
 `
 
-func (q *Queries) DeleteIngredient(ctx context.Context, id int64) error {
+func (q *Queries) DeleteIngredient(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteIngredient, id)
 	return err
 }
@@ -95,7 +95,7 @@ WHERE ingredient_id = $1 AND id = ANY($2::smallint[])
 `
 
 type DeleteIngredientServingsParams struct {
-	IngredientID int64
+	IngredientID uuid.UUID
 	Ids          []int16
 }
 
@@ -120,7 +120,7 @@ WHERE id = $1
 `
 
 type GetIngredientByIdRow struct {
-	ID            int64
+	ID            uuid.UUID
 	Name          string
 	Fats          decimal.Decimal
 	Carbohydrates decimal.Decimal
@@ -131,7 +131,7 @@ type GetIngredientByIdRow struct {
 	UserID        *uuid.UUID
 }
 
-func (q *Queries) GetIngredientById(ctx context.Context, id int64) (GetIngredientByIdRow, error) {
+func (q *Queries) GetIngredientById(ctx context.Context, id uuid.UUID) (GetIngredientByIdRow, error) {
 	row := q.db.QueryRow(ctx, getIngredientById, id)
 	var i GetIngredientByIdRow
 	err := row.Scan(
@@ -172,7 +172,7 @@ type GetIngredientsByQueryParams struct {
 }
 
 type GetIngredientsByQueryRow struct {
-	ID            int64
+	ID            uuid.UUID
 	Name          string
 	Fats          decimal.Decimal
 	Carbohydrates decimal.Decimal
@@ -218,19 +218,19 @@ func (q *Queries) GetIngredientsByQuery(ctx context.Context, arg GetIngredientsB
 const getIngredientsServingsById = `-- name: GetIngredientsServingsById :many
 SELECT 
 	name,
-	quantity,
+	amount,
 	id
 FROM ingredient_servings
 WHERE ingredient_id = $1
 `
 
 type GetIngredientsServingsByIdRow struct {
-	Name     string
-	Quantity decimal.Decimal
-	ID       int16
+	Name   string
+	Amount decimal.Decimal
+	ID     int16
 }
 
-func (q *Queries) GetIngredientsServingsById(ctx context.Context, ingredientID int64) ([]GetIngredientsServingsByIdRow, error) {
+func (q *Queries) GetIngredientsServingsById(ctx context.Context, ingredientID uuid.UUID) ([]GetIngredientsServingsByIdRow, error) {
 	rows, err := q.db.Query(ctx, getIngredientsServingsById, ingredientID)
 	if err != nil {
 		return nil, err
@@ -239,7 +239,7 @@ func (q *Queries) GetIngredientsServingsById(ctx context.Context, ingredientID i
 	var items []GetIngredientsServingsByIdRow
 	for rows.Next() {
 		var i GetIngredientsServingsByIdRow
-		if err := rows.Scan(&i.Name, &i.Quantity, &i.ID); err != nil {
+		if err := rows.Scan(&i.Name, &i.Amount, &i.ID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -253,21 +253,21 @@ func (q *Queries) GetIngredientsServingsById(ctx context.Context, ingredientID i
 const getIngredientsServingsByIds = `-- name: GetIngredientsServingsByIds :many
 SELECT 
 	name,
-	quantity,
+	amount,
 	id,
 	ingredient_id
 FROM ingredient_servings
-WHERE ingredient_id = ANY($1::int[])
+WHERE ingredient_id = ANY($1::uuid[])
 `
 
 type GetIngredientsServingsByIdsRow struct {
 	Name         string
-	Quantity     decimal.Decimal
+	Amount       decimal.Decimal
 	ID           int16
-	IngredientID int64
+	IngredientID uuid.UUID
 }
 
-func (q *Queries) GetIngredientsServingsByIds(ctx context.Context, ingredientIds []int) ([]GetIngredientsServingsByIdsRow, error) {
+func (q *Queries) GetIngredientsServingsByIds(ctx context.Context, ingredientIds []uuid.UUID) ([]GetIngredientsServingsByIdsRow, error) {
 	rows, err := q.db.Query(ctx, getIngredientsServingsByIds, ingredientIds)
 	if err != nil {
 		return nil, err
@@ -278,7 +278,7 @@ func (q *Queries) GetIngredientsServingsByIds(ctx context.Context, ingredientIds
 		var i GetIngredientsServingsByIdsRow
 		if err := rows.Scan(
 			&i.Name,
-			&i.Quantity,
+			&i.Amount,
 			&i.ID,
 			&i.IngredientID,
 		); err != nil {
@@ -307,7 +307,7 @@ RETURNING id, name, fats, carbohydrates, protein, calories, unit_type, brand, us
 `
 
 type UpdateIngredientParams struct {
-	ID            int64
+	ID            uuid.UUID
 	Name          string
 	Fats          decimal.Decimal
 	Carbohydrates decimal.Decimal

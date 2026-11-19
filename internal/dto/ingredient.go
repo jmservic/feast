@@ -6,7 +6,7 @@ import (
 )
 
 type Ingredient struct {
-	Id            int64           `json:"id"`
+	Id            uuid.UUID       `json:"id"`
 	Name          string          `json:"name"`
 	Fats          decimal.Decimal `json:"fats"`
 	Carbohydrates decimal.Decimal `json:"carbohydrates"`
@@ -15,7 +15,7 @@ type Ingredient struct {
 	Brand         string          `json:"brand"`
 	UserId        *uuid.UUID      `json:"user_id"`
 	Amount        decimal.Decimal `json:"amount"`
-	Unittype      Measurement     `json:"unittype"`
+	UnitType      Measurement     `json:"unit_type"`
 	Servings      []ServingInfo   `json:"servings"`
 }
 
