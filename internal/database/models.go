@@ -86,6 +86,51 @@ type IngredientServing struct {
 	ID           int16
 }
 
+type MealPlan struct {
+	ID          uuid.UUID
+	Name        string
+	Description string
+	UserID      uuid.UUID
+}
+
+type MealPlanItem struct {
+	ID             uuid.UUID
+	Name           string
+	Day            int
+	Category       int
+	Fats           decimal.Decimal
+	Carbohydrates  decimal.Decimal
+	Protein        decimal.Decimal
+	Calories       decimal.Decimal
+	UnitType       bool
+	Brand          *string
+	IngredientsID  *uuid.UUID
+	Amount         decimal.Decimal
+	ServingsName   string
+	ServingsAmount decimal.Decimal
+	MealPlanID     uuid.UUID
+}
+
+type MealPlanner struct {
+	ID               uuid.UUID
+	Name             string
+	Date             pgtype.Date
+	Category         int
+	Fats             decimal.Decimal
+	Carbohydrates    decimal.Decimal
+	Protein          decimal.Decimal
+	Calories         decimal.Decimal
+	UnitType         bool
+	Brand            *string
+	IngredientsID    *uuid.UUID
+	Amount           decimal.Decimal
+	ServingsName     string
+	ServingsAmount   decimal.Decimal
+	UserID           uuid.UUID
+	MealPlanInstance *uuid.UUID
+	FoodLogID        *uuid.UUID
+}
+
 type RefreshToken struct {
 	Token     string
 	CreatedAt time.Time

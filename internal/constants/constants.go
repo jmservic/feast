@@ -52,6 +52,7 @@ const (
 	JwtRetrievalErrStr                           string = "error getting JWT"
 	JwtValidationErrStr                          string = "error validating JWT"
 	LeaveHouseholdErrStr                         string = "error leaving your household"
+	MealPlanCreationErrStr                       string = "error creating a new meal plan"
 	NotAuthorizedErrStr                          string = "not authorized"
 	PasswordHashErrStr                           string = "error hashing the password" // #nosec G101
 	PromoteHouseholdMemberToHeadErrStr           string = "error promoting the household member to the household head"

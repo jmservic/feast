@@ -49,6 +49,9 @@ SELECT
 FROM ingredients
 WHERE id = $1;
 
+-- name: Get IngredientsByIds :many
+SELECT 
+
 -- name: GetIngredientsByQuery :many
 SELECT
 	id,

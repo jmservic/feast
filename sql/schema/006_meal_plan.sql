@@ -3,9 +3,8 @@
 CREATE TABLE meal_plans (
 	id uuid PRIMARY KEY DEFAULT uuidv7(),
 	name text NOT NULL,
-	description text,
+	description text NOT NULL,
 	user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE
-
 );
 
 CREATE TABLE meal_plan_items (
@@ -42,8 +41,8 @@ CREATE TABLE meal_planner (
 	servings_name text NOT NULL,
 	servings_amount decimal NOT NULL,
 	user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-	meal_plan_instance uuid
-	food_log_id uuid REFERENCES food_log (id) ON DELETE SET NULL,
+	meal_plan_instance uuid,
+	food_log_id uuid REFERENCES food_log (id) ON DELETE SET NULL
 );
 
 CREATE INDEX ON meal_plans ( user_id );
