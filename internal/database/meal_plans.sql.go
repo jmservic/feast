@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jmservic/feast/internal/dto"
 )
 
 const createMealPlan = `-- name: CreateMealPlan :one
@@ -36,4 +37,75 @@ func (q *Queries) CreateMealPlan(ctx context.Context, arg CreateMealPlanParams) 
 		&i.UserID,
 	)
 	return i, err
+}
+
+const createUpdateMealPlanItems = `-- name: CreateUpdateMealPlanItems :exec
+CALL create_update_meal_plan_items($1, $2::meal_plan_item[])
+`
+
+type CreateUpdateMealPlanItemsParams struct {
+	MealPlanID    uuid.UUID
+	MealPlanItems []dto.MealPlanItem
+}
+
+func (q *Queries) CreateUpdateMealPlanItems(ctx context.Context, arg CreateUpdateMealPlanItemsParams) error {
+	_, err := q.db.Exec(ctx, createUpdateMealPlanItems, arg.MealPlanID, arg.MealPlanItems)
+	return err
+}
+
+const getMealPlanItems = `-- name: GetMealPlanItems :many
+SELECT
+	id,
+	name,
+	day,
+	category,
+	fats,
+	carbohydrates,
+	protein,
+	calories,
+	unit_type,
+	brand,
+	ingredient_id,
+	amount,
+	servings_name,
+	servings_amount,
+	meal_plan_id
+FROM meal_plan_items
+WHERE meal_plan_id = $1
+`
+
+func (q *Queries) GetMealPlanItems(ctx context.Context, mealPlanID uuid.UUID) ([]MealPlanItem, error) {
+	rows, err := q.db.Query(ctx, getMealPlanItems, mealPlanID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []MealPlanItem
+	for rows.Next() {
+		var i MealPlanItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Day,
+			&i.Category,
+			&i.Fats,
+			&i.Carbohydrates,
+			&i.Protein,
+			&i.Calories,
+			&i.UnitType,
+			&i.Brand,
+			&i.IngredientID,
+			&i.Amount,
+			&i.ServingsName,
+			&i.ServingsAmount,
+			&i.MealPlanID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

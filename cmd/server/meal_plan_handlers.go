@@ -35,7 +35,7 @@ func (cfg apiConfig) handlerCreateMealPlan(w http.ResponseWriter, r *http.Reques
 			Category       int             `json:"category"`
 			Amount         decimal.Decimal `json:"amount"`
 			ServingsName   string          `json:"servings_name"`
-			ServingsAmount string          `json:"servings_amount"`
+			ServingsAmount decimal.Decimal `json:"servings_amount"`
 		} `json:"items"`
 	}{}
 
@@ -79,7 +79,7 @@ func (cfg apiConfig) handlerCreateMealPlan(w http.ResponseWriter, r *http.Reques
 
 	ingIds := make([]uuid.UUID, 0, len(ingIdMap))
 
-	for id, _ := range ingIdMap {
+	for id := range ingIdMap {
 		ingIds = append(ingIds, id)
 	}
 
@@ -90,6 +90,7 @@ func (cfg apiConfig) handlerCreateMealPlan(w http.ResponseWriter, r *http.Reques
 		if storedIngredient.Brand != nil {
 			brand = *storedIngredient.Brand
 		}
+
 		ingIdMap[storedIngredient.ID] = dto.Ingredient{
 			Id:            storedIngredient.ID,
 			Name:          storedIngredient.Name,
@@ -102,6 +103,35 @@ func (cfg apiConfig) handlerCreateMealPlan(w http.ResponseWriter, r *http.Reques
 			UnitType:      dto.Measurement(storedIngredient.UnitType),
 			UserId:        storedIngredient.UserID,
 		}
+	}
+
+	mealPlanItems := make([]dto.MealPlanItem, 0, len(params.Items))
+	for _, item := range params.Items {
+		ingredient := ingIdMap[item.Id]
+		mealPlanItems = append(mealPlanItems, dto.MealPlanItem{
+			Name:           ingredient.Name,
+			Day:            item.Day,
+			Category:       item.Category,
+			Fats:           ingredient.Fats,
+			Carbohydrates:  ingredient.Carbohydrates,
+			Protein:        ingredient.Protein,
+			UnitType:       bool(ingredient.UnitType),
+			Brand:          ingredient.Brand,
+			IngredientId:   &item.Id,
+			Amount:         item.Amount,
+			ServingsName:   item.ServingsName,
+			ServingsAmount: item.ServingsAmount,
+		})
+	}
+
+	err = queries.CreateUpdateMealPlanItems(r.Context(), database.CreateUpdateMealPlanItemsParams{
+		MealPlanID:    storedMealPlan.ID,
+		MealPlanItems: mealPlanItems,
+	})
+
+	if err != nil {
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.MealPlanItemCreationErrStr, err)
+		return
 	}
 
 }

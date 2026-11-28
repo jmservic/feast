@@ -18,7 +18,7 @@ CREATE TABLE meal_plan_items (
 	calories numeric(26, 16) NOT NULL,
 	unit_type boolean NOT NULL, -- weight vs volume
 	brand text,
-	ingredients_id uuid REFERENCES ingredients (id) ON DELETE SET NULL,
+	ingredient_id uuid REFERENCES ingredients (id) ON DELETE SET NULL,
 	amount decimal NOT NULL, --total amount
 	servings_name text NOT NULL,
 	servings_amount decimal NOT NULL,
@@ -36,7 +36,7 @@ CREATE TYPE meal_plan_item AS (
 	calories numeric(26, 16),
 	unit_type boolean,
 	brand text,
-	ingredients_id uuid,
+	ingredient_id uuid,
 	servings_name text,
 	servings_amount decimal
 );
@@ -52,7 +52,7 @@ CREATE TABLE meal_planner (
 	calories numeric(26, 16) NOT NULL,
 	unit_type boolean NOT NULL, -- weight vs volume
 	brand text,
-	ingredients_id uuid REFERENCES ingredients (id) ON DELETE SET NULL,
+	ingredient_id uuid REFERENCES ingredients (id) ON DELETE SET NULL,
 	amount decimal NOT NULL, --total amount
 	servings_name text NOT NULL,
 	servings_amount decimal NOT NULL,
@@ -82,11 +82,11 @@ BEGIN
 					calories = vi.calories,
 					unit_type = vi.unit_type,
 					brand = vi.brand,
-					ingredients_id = vi.ingredients_id,
+					ingredient_id = vi.ingredient_id,
 					servings_name = vi.servings_name,
 					servings_amount = vi.servings_amount
 		WHEN NOT MATCHED THEN
-			INSERT ( name, day, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredients_id, servings_name, servings_amount, meal_plan_id ) VALUES ( 
+			INSERT ( name, day, category, fats, carbohydrates, protein, calories, unit_type, brand, ingredient_id, servings_name, servings_amount, meal_plan_id ) VALUES ( 
 				vi.name,
 				vi.day,
 				vi.category,
@@ -96,7 +96,7 @@ BEGIN
 				vi.calories,
 				vi.unit_type,
 				vi.brand,
-				vi.ingredients_id,
+				vi.ingredient_id,
 				vi.servings_name,
 				vi.servings_amount,
 				v_meal_plan_id

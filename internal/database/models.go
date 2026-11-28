@@ -104,7 +104,7 @@ type MealPlanItem struct {
 	Calories       decimal.Decimal
 	UnitType       bool
 	Brand          *string
-	IngredientsID  *uuid.UUID
+	IngredientID   *uuid.UUID
 	Amount         decimal.Decimal
 	ServingsName   string
 	ServingsAmount decimal.Decimal
@@ -122,7 +122,7 @@ type MealPlanner struct {
 	Calories         decimal.Decimal
 	UnitType         bool
 	Brand            *string
-	IngredientsID    *uuid.UUID
+	IngredientID     *uuid.UUID
 	Amount           decimal.Decimal
 	ServingsName     string
 	ServingsAmount   decimal.Decimal

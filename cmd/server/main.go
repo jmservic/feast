@@ -59,6 +59,19 @@ func main() {
 			return err
 		}
 		conn.TypeMap().RegisterType(t)
+
+		t, err = conn.LoadType(context.Background(), "meal_plan_item") // meal_plan_item type
+		if err != nil {
+			return err
+		}
+		conn.TypeMap().RegisterType(t)
+
+		t, err = conn.LoadType(context.Background(), "_meal_plan_item") // meal_plan_item[] type
+		if err != nil {
+			return err
+		}
+
+		conn.TypeMap().RegisterType(t)
 		return nil
 	}
 
