@@ -5,12 +5,16 @@ import (
 	//	"fmt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+
 	//	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jmservic/feast/internal/constants"
 	"github.com/jmservic/feast/internal/database"
+	"github.com/jmservic/feast/internal/dto"
+
 	//	"github.com/jmservic/feast/internal/dto"
-	"github.com/shopspring/decimal"
 	"net/http"
+
+	"github.com/shopspring/decimal"
 	//"time"
 	/*"slices"
 	"strconv"
@@ -42,7 +46,7 @@ func (cfg apiConfig) handlerCreateMealPlan(w http.ResponseWriter, r *http.Reques
 	}
 
 	if params.Name == "" {
-		respondWithError(w, http.StatusBadRequest, constants.EmptyParameterErrStr)
+		respondWithError(w, http.StatusBadRequest, constants.EmptyParameterErrStr, nil)
 		return
 	}
 
@@ -63,8 +67,41 @@ func (cfg apiConfig) handlerCreateMealPlan(w http.ResponseWriter, r *http.Reques
 	})
 
 	if err != nil {
-		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.MealPlanCreationErrStr)
+		respondWithError(w, mapDbErrorToHttpStatusCode(err), constants.MealPlanCreationErrStr, err)
 		return
+	}
+
+	ingIdMap := map[uuid.UUID]dto.Ingredient{}
+
+	for _, item := range params.Items {
+		ingIdMap[item.Id] = dto.Ingredient{}
+	}
+
+	ingIds := make([]uuid.UUID, 0, len(ingIdMap))
+
+	for id, _ := range ingIdMap {
+		ingIds = append(ingIds, id)
+	}
+
+	storedIngredients, err := queries.GetIngredientsByIds(r.Context(), ingIds)
+
+	for _, storedIngredient := range storedIngredients {
+		brand := ""
+		if storedIngredient.Brand != nil {
+			brand = *storedIngredient.Brand
+		}
+		ingIdMap[storedIngredient.ID] = dto.Ingredient{
+			Id:            storedIngredient.ID,
+			Name:          storedIngredient.Name,
+			Fats:          storedIngredient.Fats,
+			Carbohydrates: storedIngredient.Carbohydrates,
+			Protein:       storedIngredient.Protein,
+			Calories:      storedIngredient.Calories,
+			Brand:         brand,
+			Amount:        decimal.NewFromInt(1),
+			UnitType:      dto.Measurement(storedIngredient.UnitType),
+			UserId:        storedIngredient.UserID,
+		}
 	}
 
 }

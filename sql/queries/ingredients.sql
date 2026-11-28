@@ -49,8 +49,19 @@ SELECT
 FROM ingredients
 WHERE id = $1;
 
--- name: Get IngredientsByIds :many
+-- name: GetIngredientsByIds :many
 SELECT 
+	id,
+	name,
+	fats,
+	carbohydrates,
+	protein,
+	calories,
+	unit_type,
+	brand,
+	user_id
+FROM ingredients
+WHERE id = ANY(@ingredient_ids::uuid[]);
 
 -- name: GetIngredientsByQuery :many
 SELECT

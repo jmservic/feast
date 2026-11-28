@@ -148,6 +148,63 @@ func (q *Queries) GetIngredientById(ctx context.Context, id uuid.UUID) (GetIngre
 	return i, err
 }
 
+const getIngredientsByIds = `-- name: GetIngredientsByIds :many
+SELECT 
+	id,
+	name,
+	fats,
+	carbohydrates,
+	protein,
+	calories,
+	unit_type,
+	brand,
+	user_id
+FROM ingredients
+WHERE id = ANY($1::uuid[])
+`
+
+type GetIngredientsByIdsRow struct {
+	ID            uuid.UUID
+	Name          string
+	Fats          decimal.Decimal
+	Carbohydrates decimal.Decimal
+	Protein       decimal.Decimal
+	Calories      decimal.Decimal
+	UnitType      bool
+	Brand         *string
+	UserID        *uuid.UUID
+}
+
+func (q *Queries) GetIngredientsByIds(ctx context.Context, ingredientIds []uuid.UUID) ([]GetIngredientsByIdsRow, error) {
+	rows, err := q.db.Query(ctx, getIngredientsByIds, ingredientIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetIngredientsByIdsRow
+	for rows.Next() {
+		var i GetIngredientsByIdsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Fats,
+			&i.Carbohydrates,
+			&i.Protein,
+			&i.Calories,
+			&i.UnitType,
+			&i.Brand,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getIngredientsByQuery = `-- name: GetIngredientsByQuery :many
 SELECT
 	id,
